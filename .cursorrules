@@ -1,0 +1,107 @@
+# Shams Fantasy Basketball Assistant - Cursor Rules
+
+## Build & Lint Validation
+
+**Before committing any changes, run these checks to ensure the build is not broken:**
+
+### Frontend (TypeScript/React)
+
+```bash
+# TypeScript type checking and build
+cd frontend && npm run build
+
+# If npm packages not installed, run first:
+cd frontend && npm install && npm run build
+```
+
+### Backend (Python)
+
+```bash
+# Run pylint on changed files
+cd backend && pipenv run pylint app/
+
+# Run pylint on tools
+pipenv run pylint tools/
+
+# Run pylint on specific file
+pipenv run pylint path/to/file.py
+```
+
+### Quick Validation Checklist
+
+1. **After editing `.tsx` or `.ts` files**: Run `cd frontend && npm run build`
+2. **After editing `.py` files**: Run `pipenv run pylint <file>` on changed files
+3. **After editing matchup logic**: Run tests (see Testing Requirements below)
+4. **Fix all errors before committing** - warnings can be addressed later
+
+---
+
+## Testing Requirements
+
+Before making changes to matchup projection logic:
+1. Run existing tests: `cd tools/tests && pipenv run pytest test_matchup_projection.py -v`
+2. If tests fail, do not proceed with changes
+3. After making changes, run tests again to ensure no regressions
+4. If adding new logic, add corresponding test cases
+
+Critical files that require test validation:
+- `tools/matchup/matchup_projection.py`
+- `backend/app/api/matchup.py`
+- `backend/app/models/__init__.py` (MatchupProjectionResponse)
+
+## Matchup Projection Core Logic
+
+**Roster Contribution vs Remaining Projection:**
+- `current_player_contributions`: Actual stats from games played while player was in active roster spot
+- `player_contributions`: Projected stats for future games based on season averages
+- These MUST be kept separate - changes to one should not affect the other
+
+**Active Roster Determination:**
+- Player is active if position is NOT in: BN, IL, IL+
+- Contributions only count for dates when player was active
+- `is_on_roster_today` flag tracks current roster status
+
+**Games Counting:**
+- `games_played`: Games counted in current_player_contributions
+- `remaining_games`: Games projected in player_contributions
+- `total_games`: All games in matchup week (played + remaining)
+
+**Time-Based Game Classification:**
+- A game scheduled for today should be classified based on boxscore availability:
+  - If boxscore exists for today: count as "current" (contribution), NOT in "remaining"
+  - If boxscore does NOT exist for today: count as "remaining" (projection), NOT in "current"
+- This prevents double-counting of today's games
+- Implementation: In `_aggregate_projected_contributions`, check if boxscore exists before including today in remaining_active_dates
+- Bug fixed: Lines 997-1008 in matchup_projection.py now checks `today_has_boxscore` (via `boxscore_cache.load_player_games()`) to exclude today from remaining if boxscore exists
+
+## Test Execution Commands
+
+```bash
+# Run all matchup projection tests
+cd tools/tests && pipenv run pytest test_matchup_projection.py -v
+
+# Run specific test scenario
+cd tools/tests && pipenv run pytest test_matchup_projection.py::TestRosterContributionsVsProjections::test_player_added_after_game_started -v
+
+# Run integration tests only
+cd tools/tests && pipenv run pytest test_matchup_projection.py -v -m integration
+
+# Run with coverage
+cd tools/tests && pipenv run pytest test_matchup_projection.py --cov=tools.matchup.matchup_projection --cov-report=term-missing
+```
+
+## Code Style and Conventions
+
+- Use type hints for all function parameters and return values
+- Add comprehensive docstrings to all public functions
+- Log important state changes at INFO level
+- Use descriptive variable names (avoid abbreviations unless commonly understood)
+- Prefer explicit over implicit behavior
+
+## Common Pitfalls to Avoid
+
+1. **Do not mix current and projected stats** - They use separate data structures for a reason
+2. **Do not assume today's games are always "current"** - Check game time and boxscore availability
+3. **Do not count bench/IL players** - Only active positions contribute
+4. **Do not forget to update both user and opponent data** - Changes should be symmetric
+5. **Do not skip the is_on_roster_today flag** - Frontend uses this to display dropped players

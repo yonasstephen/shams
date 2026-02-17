@@ -1,0 +1,1 @@
+"""Shams FastAPI backend application."""

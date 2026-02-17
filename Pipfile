@@ -1,0 +1,22 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[packages]
+nba_api = "*"
+rich = "*"
+requests-oauthlib = "*"
+python-dotenv = "*"
+prompt-toolkit = "*"
+pytz = "*"
+yfpy = "*"
+
+[dev-packages]
+pytest = "*"
+pytest-mock = "*"
+pylint = "*"
+pytest-cov = "*"
+
+[requires]
+python_version = "3.11"

@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Interactive Shams CLI."""
+
+from __future__ import annotations
+
+import logging
+import os
+from typing import Dict, Mapping, Optional, Sequence
+
+from rich.console import Console
+
+from commands import Command, CommandError
+from commands.exit_command import ExitCommand
+from commands.help_command import HelpCommand
+from commands.league_context import LeagueContext
+from commands.matchup_all_command import MatchupAllCommand
+from commands.matchup_command import MatchupCommand
+from commands.player_command import PlayerCommand
+from commands.refresh_command import RefreshCommand
+from commands.set_league_command import SetLeagueCommand
+from commands.waiver_command import WaiverCommand
+from tools.utils.cli_common import CommandRegistry, ask, configure_history, show_capabilities
+
+# Configure logging - can be controlled via SHAMS_LOG_LEVEL environment variable
+log_level = os.environ.get("SHAMS_LOG_LEVEL", "WARNING").upper()
+logging.basicConfig(
+    level=getattr(logging, log_level, logging.WARNING),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+
+class ShamsCLI:
+    """Command-driven interface for fantasy tools."""
+
+    def __init__(self) -> None:
+        self.console = Console()
+        self.registry = CommandRegistry()
+        self.league_context = LeagueContext(self.console)
+        self.commands: Dict[str, Command] = {}
+        self.aliases: Dict[str, Sequence[str]] = {}
+        self._register_commands()
+
+    # ------------------------------------------------------------------
+    # Registration & command loop
+    # ------------------------------------------------------------------
+    def _register_commands(self) -> None:
+        """Register all available commands using the factory pattern."""
+        command_instances = [
+            PlayerCommand(self.console),
+            WaiverCommand(self.console, self.league_context),
+            SetLeagueCommand(self.console, self.league_context),
+            MatchupCommand(self.console, self.league_context),
+            MatchupAllCommand(self.console, self.league_context),
+            RefreshCommand(self.console),
+            HelpCommand(self.console, self.registry, self.aliases),
+            ExitCommand(self.console),
+        ]
+
+        for cmd in command_instances:
+            self.commands[cmd.name] = cmd
+            self.registry.register(cmd.name, cmd.execute, cmd.description)
+            
+            # Register aliases
+            if cmd.aliases:
+                self.aliases[cmd.name] = cmd.aliases
+                for alias in cmd.aliases:
+                    self.commands[alias] = cmd
+                    self.registry.register(alias, cmd.execute, cmd.description)
+
+    def run(self) -> None:
+        configure_history()
+        self.console.print("[bold green]Welcome to Shams CLI![/bold green]")
+        
+        # Show default league if set
+        default_league = self.league_context.get_default_league_key()
+        if default_league:
+            self.console.print(f"Default league: [cyan]{default_league}[/cyan]")
+        
+        # Check and refresh box score cache if needed
+        self._check_boxscore_cache()
+        
+        self.console.print("Type /help to see available commands. Type /exit to quit.\n")
+        show_capabilities(self.registry, self.aliases)
+
+        completions = self.registry.names()
+
+        while True:
+            try:
+                user_input = ask(completions=completions)
+            except (KeyboardInterrupt, EOFError):
+                self.console.print("\nGoodbye!", style="green")
+                break
+
+            if not self._process_command(user_input.strip()):
+                self.console.print("Goodbye!", style="green")
+                break
+
+    def _check_boxscore_cache(self) -> None:
+        """Check box score cache and refresh if needed."""
+        from tools.boxscore import boxscore_cache, boxscore_refresh
+        from tools.utils.progress_display import ProgressDisplay
+        
+        try:
+            # Check if cache needs refresh
+            if boxscore_cache.needs_refresh():
+                with ProgressDisplay(self.console) as progress:
+                    # Set progress display for boxscore refresh
+                    boxscore_refresh.set_progress_display(progress)
+                    result = boxscore_refresh.smart_refresh()
+                
+                games = result.get("games_fetched", 0)
+                if games > 0:
+                    self.console.print(
+                        f"[green]✓[/green] Updated cache: {games} new games"
+                    )
+        except Exception:
+            # Silently fail - cache update is optional
+            pass
+
+    def _process_command(self, command: str) -> bool:
+        if not command:
+            return True
+
+        if not command.startswith("/"):
+            self.console.print(
+                "Commands must begin with '/'. Type /help for options.", style="yellow"
+            )
+            return True
+
+        command_name = command.split()[0]
+        if command_name in {"/exit", "/quit"}:
+            return False
+
+        ctx = self.registry.get(command_name)
+        if ctx is None:
+            self.console.print(
+                f"Unknown command: {command_name}. Type /help for options.",
+                style="yellow",
+            )
+            return True
+
+        try:
+            ctx.handler(command)
+        except CommandError as err:
+            self.console.print(str(err), style="red")
+        except Exception as err:  # noqa: BLE001
+            self.console.print(f"Error: {err}", style="red")
+        return True
+
+
+def run_cli() -> None:
+    ShamsCLI().run()
+
+
+if __name__ == "__main__":
+    run_cli()
+
+

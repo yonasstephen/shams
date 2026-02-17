@@ -1,0 +1,71 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - http_proxy=${HTTP_PROXY:-}
+        - https_proxy=${HTTPS_PROXY:-}
+    ports:
+      - "8000:8000"
+    environment:
+      - YAHOO_CONSUMER_KEY=${YAHOO_CONSUMER_KEY}
+      - YAHOO_CONSUMER_SECRET=${YAHOO_CONSUMER_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET:-dev-secret-key}
+      - BACKEND_URL=${BACKEND_URL:-https://localhost:8000}
+      - FRONTEND_URL=${FRONTEND_URL:-https://localhost:5173}
+      - DEBUG=${DEBUG:-True}
+      # Proxy for runtime API calls (Yahoo OAuth, NBA API)
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+    volumes:
+      # Share cache directory with host
+      - ~/.shams:/root/.shams
+      # Mount source code for development hot reload
+      - ./backend/app:/app/app
+      - ./tools:/app/tools
+      # Mount SSL certificates (required for Yahoo OAuth redirect)
+      - ./certs:/app/certs:ro
+    # Development: HTTPS required for Yahoo OAuth redirect URLs
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app --reload-dir /app/tools --reload-delay 0.5 --ssl-keyfile=/app/certs/key.pem --ssl-certfile=/app/certs/cert.pem
+    networks:
+      - shams-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: builder
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - http_proxy=${HTTP_PROXY:-}
+        - https_proxy=${HTTPS_PROXY:-}
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=${BACKEND_URL:-https://localhost:8000}
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    volumes:
+      # Mount source code for development hot reload
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/tailwind.config.js:/app/tailwind.config.js
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/postcss.config.js:/app/postcss.config.js
+    command: npm run dev -- --host --force
+    depends_on:
+      - backend
+    networks:
+      - shams-network
+
+networks:
+  shams-network:
+    driver: bridge
+

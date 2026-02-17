@@ -1,0 +1,53 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - http_proxy=${HTTP_PROXY:-}
+        - https_proxy=${HTTPS_PROXY:-}
+    ports:
+      - "8000:8000"
+    environment:
+      - YAHOO_CONSUMER_KEY=${YAHOO_CONSUMER_KEY}
+      - YAHOO_CONSUMER_SECRET=${YAHOO_CONSUMER_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required}
+      - BACKEND_URL=${BACKEND_URL:?BACKEND_URL is required (e.g., https://api.yourdomain.com)}
+      - FRONTEND_URL=${FRONTEND_URL:?FRONTEND_URL is required (e.g., https://yourdomain.com)}
+      - DEBUG=False
+    volumes:
+      # Share cache directory with host for persistent data
+      - ~/.shams:/root/.shams # CHANGE: map to the local volume dir
+      # Mount SSL certificates (required for Yahoo OAuth)
+      - ./certs:/app/certs:ro
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --ssl-keyfile=/app/certs/key.pem --ssl-certfile=/app/certs/cert.pem
+    restart: unless-stopped
+    networks:
+      - shams-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - http_proxy=${HTTP_PROXY:-}
+        - https_proxy=${HTTPS_PROXY:-}
+    ports:
+      - "5173:80"
+    environment:
+      # This replaces __API_URL__ placeholder in config.js at container startup
+      - VITE_API_URL=${BACKEND_URL:?BACKEND_URL is required}
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - shams-network
+
+networks:
+  shams-network:
+    driver: bridge
+

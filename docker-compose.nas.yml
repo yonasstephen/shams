@@ -1,0 +1,54 @@
+# NAS Deployment Compose File
+# Uses pre-built images from GitHub Container Registry (GHCR).
+# No Docker build required on the NAS — just pull and run.
+#
+# Setup:
+#   1. Copy this file and .env.example to your NAS
+#   2. Fill in .env with your credentials
+#   3. Place SSL certs in ./certs/ (cert.pem + key.pem)
+#      or put this behind a reverse proxy (e.g. Nginx Proxy Manager)
+#      and remove the --ssl-keyfile/--ssl-certfile flags from `command`
+#   4. docker compose -f docker-compose.nas.yml pull
+#   5. docker compose -f docker-compose.nas.yml up -d
+#
+# To update to the latest image:
+#   docker compose -f docker-compose.nas.yml pull && docker compose -f docker-compose.nas.yml up -d
+
+services:
+  backend:
+    image: ghcr.io/yonasstephen/shams-backend:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - YAHOO_CONSUMER_KEY=${YAHOO_CONSUMER_KEY}
+      - YAHOO_CONSUMER_SECRET=${YAHOO_CONSUMER_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required}
+      - BACKEND_URL=${BACKEND_URL:?BACKEND_URL is required (e.g., https://api.yourdomain.com)}
+      - FRONTEND_URL=${FRONTEND_URL:?FRONTEND_URL is required (e.g., https://yourdomain.com)}
+      - DEBUG=False
+    volumes:
+      - ${SHAMS_DATA_DIR:-./shams-data}:/root/.shams
+      - ${CERTS_DIR:-./certs}:/app/certs:ro
+    # Option A: Direct SSL (mount certs into ./certs/)
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --ssl-keyfile=/app/certs/key.pem --ssl-certfile=/app/certs/cert.pem
+    # Option B: Behind a reverse proxy (e.g. Nginx Proxy Manager) — proxy handles HTTPS
+    # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
+    restart: unless-stopped
+    networks:
+      - shams-network
+
+  frontend:
+    image: ghcr.io/yonasstephen/shams-frontend:latest
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_URL=${BACKEND_URL:?BACKEND_URL is required}
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - shams-network
+
+networks:
+  shams-network:
+    driver: bridge
