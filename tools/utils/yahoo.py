@@ -37,7 +37,6 @@ class TokenRefreshQueryWrapper:
     def _force_token_refresh(self):
         """Manually refresh OAuth tokens using the refresh token."""
         import requests
-        from dotenv import load_dotenv
 
         # Use the DEFAULT_TOKEN_DIR instead of trying to access the query's attribute
         env_file = DEFAULT_TOKEN_DIR / ".env"
@@ -51,7 +50,7 @@ class TokenRefreshQueryWrapper:
         consumer_secret = os.getenv("YAHOO_CONSUMER_SECRET")
 
         if not refresh_token:
-            print(f"[WARNING] No refresh token found in .env file")
+            print("[WARNING] No refresh token found in .env file")
             return
 
         # Call Yahoo OAuth to refresh the token
@@ -63,8 +62,8 @@ class TokenRefreshQueryWrapper:
             "refresh_token": refresh_token,
         }
 
-        print(f"[DEBUG] Manually refreshing OAuth tokens...")
-        response = requests.post(token_url, data=token_data)
+        print("[DEBUG] Manually refreshing OAuth tokens...")
+        response = requests.post(token_url, data=token_data, timeout=30)
         response.raise_for_status()
         new_tokens = response.json()
 
@@ -361,7 +360,7 @@ def _fetch_single_status(
             f"https://fantasysports.yahooapis.com/fantasy/v2/league/{league_key}/players;"
             f"status={status};start={start};count={count}"
         )
-        
+
         logger.info(f"Fetching waiver players: status={status}, start={start}, count={count}")
 
         player_data = query.query(url, ["league", "players"])
@@ -406,7 +405,7 @@ def fetch_free_agents_and_waivers(
 
     Iterates through all available players (FA and W status) separately to avoid
     pagination conflicts. Each status is paginated independently.
-    
+
     Falls back to "A" (all available) status if both FA and W return empty.
 
     Args:
@@ -452,22 +451,22 @@ def fetch_free_agents_and_waivers(
         start = 0
         max_attempts = 50
         attempts = 0
-        
+
         while attempts < max_attempts:
             try:
                 batch = _fetch_single_status(
                     league_key, "A", count=batch_size, start=start
                 )
-                
+
                 if not batch:
                     break
-                
+
                 all_players.extend(batch)
                 start += len(batch)
                 attempts += 1
             except Exception:
                 break
-        
+
         if all_players:
             logger.info(f"Successfully fetched {len(all_players)} players using 'A' status")
         else:
@@ -516,7 +515,7 @@ def fetch_all_player_rankings(
                 break
 
             players_list = player_data if isinstance(player_data, list) else [player_data]
-            
+
             if not players_list:
                 logger.debug(f"Empty players list at start={start}")
                 break
@@ -780,14 +779,14 @@ def fetch_and_cache_league_roster_positions(league_key: str) -> List[str]:
     # The settings object has a roster_positions attribute that contains the position slots
     if hasattr(settings, "roster_positions") and settings.roster_positions:
         roster_pos_list = settings.roster_positions
-        
+
         logger.debug(f"Parsing roster_positions list with {len(roster_pos_list)} entries")
 
         # Parse each position entry (should be RosterPosition objects)
         for pos_entry in roster_pos_list:
             position = None
             count = 1
-            
+
             # Try to get position and count from the object
             if hasattr(pos_entry, "position"):
                 position = str(pos_entry.position)

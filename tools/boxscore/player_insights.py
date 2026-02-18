@@ -6,9 +6,9 @@ insights about a player's performance in a specific game.
 
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-from tools.utils import nba_api_config  # noqa: F401 - Configure NBA API timeout
+from tools.utils import nba_api_config  # noqa: F401  # pylint: disable=unused-import
 
 
 @dataclass
@@ -472,7 +472,6 @@ def _calculate_quarter_breakdown(
                 if " AST)" in description.upper():
                     # Extract the name before AST and check if it matches
                     # Format: "... (Doncic 1 AST)"
-                    import re
                     ast_match = re.search(r'\(([^)]+)\s+\d+\s+AST\)', description, re.IGNORECASE)
                     if ast_match:
                         assister_name = ast_match.group(1).strip()
@@ -656,14 +655,14 @@ def _detect_foul_trouble(fouls: List[FoulEventData]) -> List[InsightData]:
 def _detect_minutes_patterns(
     total_minutes: float,
     quarter_breakdown: List[QuarterBreakdownData],
-    substitutions: List[SubstitutionEventData],
+    _substitutions: List[SubstitutionEventData],
 ) -> List[InsightData]:
     """Detect unusual minutes patterns.
 
     Args:
         total_minutes: Total minutes played
         quarter_breakdown: Stats by quarter
-        substitutions: Substitution events
+        _substitutions: Substitution events
 
     Returns:
         List of minutes-related insights
@@ -671,7 +670,7 @@ def _detect_minutes_patterns(
     insights = []
 
     # Check for very low minutes
-    if total_minutes < 15 and total_minutes > 0:
+    if 0 < total_minutes < 15:
         insights.append(
             InsightData(
                 type="limited_minutes",

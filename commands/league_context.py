@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List, Optional, Sequence
+from typing import Optional, Sequence
 
 from rich.console import Console
 
@@ -40,7 +40,7 @@ class LeagueContext:
             return
 
         try:
-            with open(self.CONFIG_FILE, "r") as f:
+            with open(self.CONFIG_FILE, "r", encoding="utf-8") as f:
                 config = json.load(f)
                 self._default_league_key = config.get("default_league_key")
         except (json.JSONDecodeError, IOError) as err:
@@ -53,7 +53,7 @@ class LeagueContext:
         """Save configuration to file."""
         try:
             config = {"default_league_key": self._default_league_key}
-            with open(self.CONFIG_FILE, "w") as f:
+            with open(self.CONFIG_FILE, "w", encoding="utf-8") as f:
                 json.dump(config, f, indent=2)
         except IOError as err:
             self.console.print(

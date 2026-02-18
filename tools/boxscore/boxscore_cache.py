@@ -223,7 +223,7 @@ def load_game(game_id: str, season: str) -> Optional[dict]:
         return None
 
     try:
-        with open(game_files[0], "r") as f:
+        with open(game_files[0], "r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, IOError):
         return None
@@ -253,7 +253,7 @@ def load_date_boxscore(game_date: str, season: str = "2025-26") -> Optional[Dict
     result = {}
     for game_file in game_files:
         try:
-            with open(game_file, "r") as f:
+            with open(game_file, "r", encoding="utf-8") as f:
                 game_data = json.load(f)
                 game_id = game_data.get("game_id", game_file.stem.split("_", 1)[1])
                 result[game_id] = game_data
@@ -279,7 +279,7 @@ def save_game(game_id: str, season: str, game_date: str, data: dict) -> None:
     game_file = games_dir / f"{date_str}_{game_id}.json"
 
     try:
-        with open(game_file, "w") as f:
+        with open(game_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
     except IOError as e:
         print(f"Warning: Could not save game {game_id}: {e}")
@@ -486,7 +486,7 @@ def rebuild_player_index(player_id: int, season: str) -> Optional[dict]:
     # Scan all game files
     for game_file in sorted(games_dir.glob("*.json")):
         try:
-            with open(game_file, "r") as f:
+            with open(game_file, "r", encoding="utf-8") as f:
                 game_data = json.load(f)
 
             box_score = game_data.get("box_score", {})
@@ -509,7 +509,7 @@ def rebuild_player_index(player_id: int, season: str) -> Optional[dict]:
                     away_team_id = None
 
                 team_tricodes = {}
-                for pid, pstats in box_score.items():
+                for _, pstats in box_score.items():
                     team_id = pstats.get("TEAM_ID")
                     if team_id and team_id not in team_tricodes:
                         team_tricodes[team_id] = pstats.get("teamTricode", "")
@@ -593,7 +593,7 @@ def rebuild_all_player_indexes(season: str) -> int:
 
             # Build team tricode map for this game
             team_tricodes = {}
-            for pid, pstats in box_score.items():
+            for _, pstats in box_score.items():
                 team_id = pstats.get("TEAM_ID")
                 if team_id and team_id not in team_tricodes:
                     team_tricodes[team_id] = pstats.get("teamTricode", "")
@@ -675,7 +675,7 @@ def backfill_team_scores(season: str) -> int:
 
     for game_file in sorted(games_dir.glob("*.json")):
         try:
-            with open(game_file, "r") as f:
+            with open(game_file, "r", encoding="utf-8") as f:
                 game_data = json.load(f)
 
             # Skip if already has scores
@@ -718,7 +718,7 @@ def backfill_team_scores(season: str) -> int:
             game_data["away_score"] = away_score
 
             # Save updated game file
-            with open(game_file, "w") as f:
+            with open(game_file, "w", encoding="utf-8") as f:
                 json.dump(game_data, f, indent=2)
 
             updated_count += 1
@@ -779,7 +779,7 @@ def save_player_season_stats(
         "last_updated": datetime.now().isoformat(),
     }
 
-    with open(stats_file, "w") as f:
+    with open(stats_file, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
 
@@ -798,7 +798,7 @@ def load_player_season_stats(player_id: int, season: str) -> Optional[Dict]:
     # Find file by player_id prefix
     for stats_file in stats_dir.glob(f"{player_id}_*.json"):
         try:
-            with open(stats_file, "r") as f:
+            with open(stats_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 return data.get("stats")
         except (json.JSONDecodeError, IOError):
@@ -822,7 +822,7 @@ def compute_and_save_all_season_stats(season: str) -> int:
 
     for player_file in players_dir.glob("*.json"):
         try:
-            with open(player_file, "r") as f:
+            with open(player_file, "r", encoding="utf-8") as f:
                 player_data = json.load(f)
 
             player_id = player_data.get("player_id")
@@ -1077,7 +1077,7 @@ def get_missing_games_summary(season: str) -> Dict:
     total_cached = 0
     dates_with_missing = 0
 
-    for date_str, info in missing_by_date.items():
+    for _, info in missing_by_date.items():
         total_missing += info["missing_count"]
         total_expected += info["expected"]
         total_cached += info["cached"]

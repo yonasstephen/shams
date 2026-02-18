@@ -5,17 +5,12 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Dict, List
 
-from rich.console import Console
-
 from commands import Command
 from tools.boxscore import boxscore_refresh
 
 
 class RefreshCommand(Command):
     """Refresh box score cache."""
-
-    def __init__(self, console: Console) -> None:
-        super().__init__(console)
 
     @property
     def name(self) -> str:

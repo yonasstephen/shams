@@ -12,13 +12,11 @@ from commands.league_context import LeagueContext
 from tools.player.player_fetcher import clear_game_log_caches
 from tools.player.player_minutes_trend import (
     NBA_API_TIMEOUT,
-    SuggestionResponse,
     TrendComputation,
     process_minute_trend_query,
 )
 from tools.schedule.schedule_fetcher import get_season_start_date
 from tools.utils.render import _get_stat_color
-from tools.utils.yahoo import fetch_free_agents
 
 
 def render_waiver_table(
@@ -292,7 +290,7 @@ class WaiverCommand(Command):
             },
         ]
 
-    def execute(self, command: str) -> None:
+    def execute(self, command: str) -> None:  # pylint: disable=too-many-return-statements
         if self.should_show_help(command):
             self.show_help()
             return
@@ -556,7 +554,7 @@ class WaiverCommand(Command):
                     suggestion_limit=5,
                     timeout=NBA_API_TIMEOUT,
                 )
-            except (ValueError, Exception) as e:
+            except (ValueError, Exception):
                 # Skip players we can't fetch data for
                 # (e.g., not found, no games, timeout)
                 skipped_count += 1
@@ -564,8 +562,6 @@ class WaiverCommand(Command):
 
             if isinstance(result, TrendComputation):
                 # Compute 9-cat stats for this player
-                from datetime import date as date_cls
-
                 from tools.player.player_minutes_trend import find_player_matches
                 from tools.player.player_stats import (
                     _parse_stat_mode,

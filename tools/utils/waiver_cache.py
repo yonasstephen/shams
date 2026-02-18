@@ -44,7 +44,7 @@ def load_cached_players(
         return None
 
     try:
-        with open(cache_path, "r") as f:
+        with open(cache_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
             # Check cache age if max_age_hours is specified
@@ -88,7 +88,7 @@ def save_cached_players(league_key: str, players: List[dict]) -> None:
                     print(f"Warning: Skipping non-serializable player: {type(player)}")
                     continue
 
-        with open(cache_path, "w") as f:
+        with open(cache_path, "w", encoding="utf-8") as f:
             json.dump(
                 {
                     "players": serialized_players,
@@ -117,7 +117,7 @@ def get_cache_metadata(league_key: str) -> Optional[Dict[str, Any]]:
         return None
 
     try:
-        with open(cache_path, "r") as f:
+        with open(cache_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             timestamp_str = data.get("timestamp")
             players = data.get("players", [])

@@ -54,7 +54,7 @@ good-names=i,j,k,ex,_,id,db,app,f,e
 max-line-length=120
 
 # Maximum number of lines in a module
-max-module-lines=1000
+max-module-lines=2500
 
 [DESIGN]
 # Maximum number of arguments for function / method

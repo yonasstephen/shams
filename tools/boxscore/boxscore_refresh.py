@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
-from typing import Dict, List, Optional
+from datetime import date, timedelta
+from typing import Dict, Optional
 
 from nba_api.stats.library.parameters import SeasonAll
 from rich.console import Console
@@ -34,7 +34,7 @@ def set_timing_tracker(tracker: Optional[TimingTracker]) -> None:
     _timing_tracker = tracker
 
 
-def _detect_active_season(current_season: str) -> str:
+def _detect_active_season(_current_season: str) -> str:
     """Detect which season should be used based on the current date.
 
     Uses date-based logic to determine the active NBA season.
@@ -430,7 +430,7 @@ def smart_refresh(season: Optional[str] = None) -> Dict:
     Checks last cached date for the season and fetches from there to today.
     Does NOT rebuild or clear cache when switching seasons - each season
     maintains its own independent cache.
-    
+
     Args:
         season: Season override (e.g., "2025-26"). If None, auto-detects.
 
@@ -459,7 +459,7 @@ def smart_refresh(season: Optional[str] = None) -> Dict:
             _progress_display.add_line(msg)
         else:
             _console.print(msg)
-        
+
         # Use refresh_boxscores which does incremental fetch without clearing
         return refresh_boxscores(
             start_date=get_season_start_date(season),

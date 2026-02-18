@@ -176,12 +176,12 @@ def _build_optimized_player_active_dates(
         - optimized_positions_by_date: Dict mapping date -> player_key -> position for per-day optimization
     """
     from tools.matchup import roster_optimizer
-    from tools.utils import league_cache, player_index, yahoo
+    from tools.utils import player_index, yahoo
     from tools.utils.player_utils import get_player_eligible_positions
 
     # Get league roster settings
     league_roster_positions = yahoo.fetch_and_cache_league_roster_positions(league_key)
-    
+
     # Load player rankings for tie-breaking during optimization
     # This maps player_key -> rank (1 = best player)
     player_ranks = player_index.get_all_player_ranks(league_key)
@@ -208,7 +208,7 @@ def _build_optimized_player_active_dates(
     # Yahoo's get_team_roster_player_info_by_date() already includes eligible_positions field
     players_for_optimizer = []
     missing_eligibility_count = 0
-    
+
     for player_key, player in unique_players.items():
         # Get eligible positions from player object (already fetched from Yahoo API)
         # This is just a dictionary lookup - no API call
@@ -234,7 +234,7 @@ def _build_optimized_player_active_dates(
             "player_key": player_key,
             "eligible_positions": eligible_positions,
         })
-    
+
     # Log if any players are missing eligibility data (should be rare)
     if missing_eligibility_count > 0:
         logger.info(
@@ -250,14 +250,14 @@ def _build_optimized_player_active_dates(
             player_key = _player_key(player)
             if not player_key:
                 continue
-            
+
             # Extract position from Yahoo roster
             selected_position = player.get("selected_position")
             if isinstance(selected_position, dict):
                 position = selected_position.get("position", "")
             else:
                 position = selected_position if selected_position else ""
-            
+
             yahoo_positions_by_date[date_str][player_key] = position or ""
 
     # Build player schedules: map player_key -> set of dates with games
@@ -279,34 +279,34 @@ def _build_optimized_player_active_dates(
     # Optimize roster PER DAY to maximize active players each day
     player_active_dates: Dict[str, set] = {}
     optimized_positions_by_date: Dict[str, Dict[str, str]] = {}  # date -> player_key -> position
-    
+
     # Collect all dates in the roster
     all_dates = sorted(roster.keys())
-    
+
     logger.info(f"Optimizing roster per-day for {len(all_dates)} dates")
 
     for date_str in all_dates:
         # Get Yahoo positions for this date
         yahoo_positions_today = yahoo_positions_by_date.get(date_str, {})
-        
+
         # Get set of players who are actually on the roster today (not dropped)
         players_on_roster_today = set(yahoo_positions_today.keys())
-        
+
         # Identify players in IL/IL+ positions - these should NOT be optimized
         players_in_il_today: Dict[str, str] = {}  # player_key -> IL position
         for player_key, position in yahoo_positions_today.items():
             if position in ["IL", "IL+"]:
                 players_in_il_today[player_key] = position
-        
+
         # Determine which players have games on this specific date (excluding IL/IL+ players)
         # IMPORTANT: Only consider players who are actually on the roster for this date
         players_with_games_today: Set[str] = set()
         for player_key, game_dates in player_schedules.items():
-            if (date_str in game_dates 
+            if (date_str in game_dates
                 and player_key not in players_in_il_today
                 and player_key in players_on_roster_today):
                 players_with_games_today.add(player_key)
-        
+
         if players_in_il_today:
             logger.debug(f"  {date_str}: {len(players_with_games_today)} players with games, {len(players_in_il_today)} in IL/IL+")
         else:
@@ -327,10 +327,10 @@ def _build_optimized_player_active_dates(
             players_with_games_today,
             player_ranks=player_ranks,
         )
-        
+
         # Merge optimized positions with IL/IL+ positions (IL/IL+ takes precedence)
         final_positions_today = {**optimized_positions_today, **players_in_il_today}
-        
+
         optimized_positions_by_date[date_str] = final_positions_today
 
         # Track which players are active on this date
@@ -412,7 +412,7 @@ def _build_player_active_dates(roster: Dict[str, List[dict]]) -> Dict[str, set]:
             # If this is the first date we see the player AND it's today or later,
             # don't count stats from earlier dates this week
             first_seen_date = player_first_seen.get(player_key, date_str)
-            if first_seen_date >= today and date_str < today:
+            if date_str < today <= first_seen_date:
                 continue
 
             # Log position info for all players (can be filtered by log level)
@@ -597,66 +597,66 @@ def _project_player_stats(
                 projected[stat_id] = value * games_count
 
         return projected
-    else:
-        # Compute stats using compute_player_stats for other modes
-        season_start = schedule_fetcher.get_season_start_date(season)
-        today = date.today()
 
-        # Compute per-game averages using selected mode
-        player_stats = compute_player_stats(
-            player_id=nba_id,
-            mode=projection_mode,
-            season_start=season_start,
-            today=today,
-            agg_mode="avg",  # Always get per-game averages for projection
-            season=season,
+    # Compute stats using compute_player_stats for other modes
+    season_start = schedule_fetcher.get_season_start_date(season)
+    today = date.today()
+
+    # Compute per-game averages using selected mode
+    player_stats = compute_player_stats(
+        player_id=nba_id,
+        mode=projection_mode,
+        season_start=season_start,
+        today=today,
+        agg_mode="avg",  # Always get per-game averages for projection
+        season=season,
+    )
+
+    if not player_stats:
+        # Fallback to season stats if computation fails
+        return _project_player_stats(
+            league_key, player, game_dates, stat_meta, season, "season"
         )
 
-        if not player_stats:
-            # Fallback to season stats if computation fails
-            return _project_player_stats(
-                league_key, player, game_dates, stat_meta, season, "season"
+    # Map PlayerStats to stat_ids
+    projected = {}
+    games_count = len(game_dates)
+
+    for stat in stat_meta:
+        stat_id = str(stat.get("stat_id"))
+        if stat.get("is_only_display_stat") == 1:
+            continue
+
+        stat_name = (
+            stat.get("display_name") or stat.get("name") or stat.get("abbr", "")
+        )
+        is_percentage = "%" in stat_name
+
+        # Map stat names to PlayerStats attributes
+        if stat_name == "FG%":
+            projected[stat_id] = player_stats.fg_pct
+        elif stat_name == "FT%":
+            projected[stat_id] = player_stats.ft_pct
+        elif stat_name in ["3PTM", "3PM", "3-Point Baskets Made"]:
+            projected[stat_id] = player_stats.threes * (
+                1 if is_percentage else games_count
             )
+        elif stat_name in ["PTS", "Points"]:
+            projected[stat_id] = player_stats.points * games_count
+        elif stat_name in ["REB", "Rebounds"]:
+            projected[stat_id] = player_stats.rebounds * games_count
+        elif stat_name in ["AST", "Assists"]:
+            projected[stat_id] = player_stats.assists * games_count
+        elif stat_name in ["ST", "STL", "Steals"]:
+            projected[stat_id] = player_stats.steals * games_count
+        elif stat_name in ["BLK", "Blocks"]:
+            projected[stat_id] = player_stats.blocks * games_count
+        elif stat_name in ["TO", "Turnovers"]:
+            projected[stat_id] = player_stats.turnovers * games_count
+        else:
+            projected[stat_id] = 0.0
 
-        # Map PlayerStats to stat_ids
-        projected = {}
-        games_count = len(game_dates)
-
-        for stat in stat_meta:
-            stat_id = str(stat.get("stat_id"))
-            if stat.get("is_only_display_stat") == 1:
-                continue
-
-            stat_name = (
-                stat.get("display_name") or stat.get("name") or stat.get("abbr", "")
-            )
-            is_percentage = "%" in stat_name
-
-            # Map stat names to PlayerStats attributes
-            if stat_name == "FG%":
-                projected[stat_id] = player_stats.fg_pct
-            elif stat_name == "FT%":
-                projected[stat_id] = player_stats.ft_pct
-            elif stat_name in ["3PTM", "3PM", "3-Point Baskets Made"]:
-                projected[stat_id] = player_stats.threes * (
-                    1 if is_percentage else games_count
-                )
-            elif stat_name in ["PTS", "Points"]:
-                projected[stat_id] = player_stats.points * games_count
-            elif stat_name in ["REB", "Rebounds"]:
-                projected[stat_id] = player_stats.rebounds * games_count
-            elif stat_name in ["AST", "Assists"]:
-                projected[stat_id] = player_stats.assists * games_count
-            elif stat_name in ["ST", "STL", "Steals"]:
-                projected[stat_id] = player_stats.steals * games_count
-            elif stat_name in ["BLK", "Blocks"]:
-                projected[stat_id] = player_stats.blocks * games_count
-            elif stat_name in ["TO", "Turnovers"]:
-                projected[stat_id] = player_stats.turnovers * games_count
-            else:
-                projected[stat_id] = 0.0
-
-        return projected
+    return projected
 
 
 def _project_team(
@@ -794,7 +794,7 @@ def _project_team(
     totals["_FTM"] = total_ftm
     totals["_FTA"] = total_fta
 
-    logger.info(f"Combined projection complete. Total projection calculated.")
+    logger.info("Combined projection complete. Total projection calculated.")
     return totals
 
 
@@ -933,8 +933,6 @@ def _aggregate_current_week_player_contributions(
         - player_games_played: number of games played this week while in active roster spot
         - player_ids: player key to NBA player ID mapping
     """
-    from tools.player import player_fetcher
-
     stat_ids = [
         str(s.get("stat_id")) for s in stat_meta if s.get("is_only_display_stat") != 1
     ]
@@ -1203,7 +1201,7 @@ def _compute_daily_player_contributions(
 
     Args:
         _league_key: Yahoo league key
-        roster: Player roster by date  
+        roster: Player roster by date
         week_start: Start date of week
         week_end: End date of week
         stat_meta: Stat category metadata
@@ -1660,7 +1658,7 @@ def _calculate_projected_points(
     team_b_projection: Dict[str, float],
 ) -> Tuple[Dict[str, float], Dict[str, float]]:
     """Calculate projected team points (wins/losses/ties) based on projections.
-    
+
     For FG% and FT% ties, uses volume (FGA/FTA) as tiebreaker - larger volume wins.
     For other stats, ties count as ties (not 0.5 points each).
     """
@@ -2002,7 +2000,7 @@ def project_matchup(
 
     team_a, team_b = _resolve_matchup_teams(matchup)
     stat_meta = fetch_league_stat_categories(league_key)
-    
+
     # Build optimization map - determine which teams need optimization
     optimize_map: Dict[str, bool] = {}
     if team_a.get("team_key") == team_key:
@@ -2011,7 +2009,7 @@ def project_matchup(
     else:
         optimize_map[team_key] = optimize_user_roster
         optimize_map[team_a.get("team_key")] = optimize_opponent_roster
-    
+
     projection_bundle = _build_matchup_projection(
         league_key,
         stat_meta,

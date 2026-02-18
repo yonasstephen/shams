@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import date
 from typing import Dict, List
 
-from rich.console import Console
 from rich.table import Table
 
 from commands import Command, CommandError

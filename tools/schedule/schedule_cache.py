@@ -46,7 +46,7 @@ def save_team_schedule(team_id: int, season: str, dates: List[str]) -> None:
     data = {"team_id": team_id, "season": season, "dates": dates}
 
     try:
-        with open(schedule_file, "w") as f:
+        with open(schedule_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
     except IOError as e:
         print(f"Warning: Could not save schedule for team {team_id}: {e}")
@@ -69,7 +69,7 @@ def load_team_schedule(team_id: int, season: str) -> Optional[List[str]]:
         return None
 
     try:
-        with open(schedule_file, "r") as f:
+        with open(schedule_file, "r", encoding="utf-8") as f:
             data = json.load(f)
         return data.get("dates", [])
     except (json.JSONDecodeError, IOError):
@@ -90,7 +90,7 @@ def save_player_team_index(player_id: int, team_id: int, season: str) -> None:
     data = {"player_id": player_id, "team_id": team_id, "season": season}
 
     try:
-        with open(index_file, "w") as f:
+        with open(index_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
     except IOError as e:
         print(f"Warning: Could not save player-team index for {player_id}: {e}")
@@ -113,7 +113,7 @@ def get_player_team_id(player_id: int, season: str) -> Optional[int]:
         return None
 
     try:
-        with open(index_file, "r") as f:
+        with open(index_file, "r", encoding="utf-8") as f:
             data = json.load(f)
         return data.get("team_id")
     except (json.JSONDecodeError, IOError):
@@ -143,7 +143,7 @@ def build_player_team_index_from_boxscores(season: str) -> int:
 
     for player_file in players_dir.glob("*.json"):
         try:
-            with open(player_file, "r") as f:
+            with open(player_file, "r", encoding="utf-8") as f:
                 player_data = json.load(f)
 
             player_id = player_data.get("player_id")
@@ -236,7 +236,7 @@ def save_full_schedule(season: str, schedule_data: Dict) -> None:
     schedule_file = cache_dir / f"full_schedule_{season}.json"
 
     try:
-        with open(schedule_file, "w") as f:
+        with open(schedule_file, "w", encoding="utf-8") as f:
             json.dump(schedule_data, f, indent=2)
     except IOError as e:
         print(f"Warning: Could not save full schedule: {e}")
@@ -258,7 +258,7 @@ def load_full_schedule(season: str) -> Optional[Dict]:
         return None
 
     try:
-        with open(schedule_file, "r") as f:
+        with open(schedule_file, "r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, IOError):
         return None

@@ -9,7 +9,7 @@ from typing import Dict, List, Optional
 from rich.console import Console
 
 from tools.boxscore import boxscore_cache
-from tools.utils import nba_api_config  # noqa: F401 - Configure NBA API timeout
+from tools.utils import nba_api_config  # noqa: F401  # pylint: disable=unused-import
 from tools.utils.timing import TimingTracker
 
 # Create a global console for colored output
@@ -34,16 +34,15 @@ def set_timing_tracker(tracker: Optional[TimingTracker]) -> None:
     _timing_tracker = tracker
 
 
-def _fetch_box_score_data(game_id: str):
+def _fetch_box_score_data(game_id: str):  # pylint: disable=too-many-return-statements
     """Fetch box score data from both traditional and advanced endpoints.
 
     Returns tuple of (player_stats_df, team_data_dict, error_info).
     - On success: (df, team_data, None)
     - On failure: (None, None, error_dict with 'type' and 'message')
     """
-    import pandas as pd
     from nba_api.stats.endpoints import boxscoreadvancedv3, boxscoretraditionalv3
-    from requests.exceptions import ConnectionError, RequestException, Timeout
+    from requests.exceptions import ConnectionError as ConnError, RequestException, Timeout
 
     try:
         # Fetch traditional box score
@@ -110,7 +109,7 @@ def _fetch_box_score_data(game_id: str):
 
     except Timeout as e:
         return None, None, None, {"type": "timeout", "message": f"Request timeout: {str(e)}"}
-    except ConnectionError as e:
+    except ConnError as e:
         return (
             None,
             None,
@@ -226,9 +225,7 @@ def fetch_box_score(
 
         # Get game date - use provided parameter or default to today
         if game_date is None:
-            from datetime import date as date_cls
-
-            game_date = date_cls.today().isoformat()
+            game_date = date.today().isoformat()
 
         # Determine home/away teams
         team_ids = player_stats_df["TEAM_ID"].unique()
@@ -302,7 +299,7 @@ def fetch_and_cache_date_range(
         Tuple of (number of games cached, list of failed games for logging)
     """
     import time
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     import pytz
 
@@ -440,7 +437,6 @@ def fetch_and_cache_date_range(
                 # ERROR: Game should have started but has no stats
                 # This IS an error that should be tracked (e.g., postponed game, API issues)
                 # Use the actual error information returned from fetch_box_score
-                from datetime import datetime
 
                 # Extract error type and message from error_info
                 if error_info:
@@ -516,8 +512,6 @@ def fetch_and_cache_date_range(
         # If no data was fetched and no existing end, use start date as end
         metadata["date_range"]["end"] = start.isoformat()
     # If no data was fetched but existing_end exists, keep the existing end date
-
-    from datetime import datetime
 
     metadata["last_updated"] = datetime.now().isoformat()
 

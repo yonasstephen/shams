@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ def optimize_roster_positions(
     active_slots = [pos for pos in league_roster_positions if pos not in inactive_positions]
 
     # Track which slots are filled
-    available_slots: Dict[int, str] = {i: pos for i, pos in enumerate(active_slots)}
+    available_slots: Dict[int, str] = dict(enumerate(active_slots))
     player_assignments: Dict[str, str] = {}
 
     # Default to empty dict if no ranks provided
@@ -115,12 +115,12 @@ def optimize_roster_positions(
             continue
 
         eligible_positions = player.get("eligible_positions", [])
-        
+
         # Log players without games for debugging
         if player_key not in players_with_games:
             logger.debug(f"Player {player_key} has no games scheduled, will be benched")
             continue
-            
+
         if not eligible_positions:
             logger.warning(f"Player {player_key} has games but no eligible_positions data!")
             continue
@@ -202,4 +202,3 @@ def get_active_positions(optimized_positions: Dict[str, str]) -> Set[str]:
         for player_key, position in optimized_positions.items()
         if position not in inactive
     }
-

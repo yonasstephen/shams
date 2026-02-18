@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Sequence
 
-from tools.utils import nba_api_config  # noqa: F401 - Configure NBA API timeout
+from tools.utils import nba_api_config  # noqa: F401  # pylint: disable=unused-import
 
 
 @dataclass
@@ -24,17 +24,15 @@ def get_season_start_date(season: str = "2025-26") -> date:
     Returns:
         Season start date (typically October 21 of the first year)
     """
-    from datetime import date as date_cls
-
     # Parse season year
     try:
         year = int(season.split("-")[0])
         # NBA regular season typically starts on October 21 of the first year
         # For "2025-26", that's October 21, 2025
-        return date_cls(year, 10, 21)
+        return date(year, 10, 21)
     except (ValueError, IndexError):
         # Fallback to current date
-        return date_cls.today()
+        return date.today()
 
 
 def fetch_player_upcoming_games_from_cache(

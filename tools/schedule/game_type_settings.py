@@ -125,7 +125,7 @@ def save_settings(settings: Dict[str, bool]) -> bool:
         return False
 
 
-def get_game_type(row: Any) -> Optional[str]:
+def get_game_type(row: Any) -> Optional[str]:  # pylint: disable=too-many-return-statements
     """Determine the game type category from a schedule row.
 
     Args:

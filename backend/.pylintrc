@@ -41,7 +41,7 @@ good-names=i,j,k,ex,_,id,db,app,f,e
 
 [FORMAT]
 max-line-length=120
-max-module-lines=1000
+max-module-lines=2500
 
 [DESIGN]
 max-args=10

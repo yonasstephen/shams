@@ -12,7 +12,7 @@ from tools.utils.stat_thresholds import get_thresholds
 console = Console()
 
 
-def _get_stat_color(stat_name: str, value: float) -> str:
+def _get_stat_color(stat_name: str, value: float) -> str:  # pylint: disable=too-many-return-statements
     """Return color based on stat thresholds for fantasy basketball stats.
 
     This function provides consistent color coding across all stat tables.
@@ -42,92 +42,79 @@ def _get_stat_color(stat_name: str, value: float) -> str:
     if stat_name == "3PM":
         if value < thresholds.threes_yellow_min:
             return "white"
-        elif value < thresholds.threes_green_min:
+        if value < thresholds.threes_green_min:
             return "yellow"
-        else:
-            return "green"
-    elif stat_name == "PTS":
+        return "green"
+    if stat_name == "PTS":
         if value < thresholds.pts_yellow_min:
             return "white"
-        elif value < thresholds.pts_green_min:
+        if value < thresholds.pts_green_min:
             return "yellow"
-        else:
-            return "green"
-    elif stat_name == "REB":
+        return "green"
+    if stat_name == "REB":
         if value < thresholds.reb_yellow_min:
             return "white"
-        elif value < thresholds.reb_green_min:
+        if value < thresholds.reb_green_min:
             return "yellow"
-        else:
-            return "green"
-    elif stat_name == "AST":
+        return "green"
+    if stat_name == "AST":
         if value < thresholds.ast_yellow_min:
             return "white"
-        elif value < thresholds.ast_green_min:
+        if value < thresholds.ast_green_min:
             return "yellow"
-        else:
-            return "green"
-    elif stat_name == "STL":
+        return "green"
+    if stat_name == "STL":
         if value < thresholds.stl_yellow_min:
             return "white"
-        elif value < thresholds.stl_green_min:
+        if value < thresholds.stl_green_min:
             return "yellow"
-        else:
-            return "green"
-    elif stat_name == "BLK":
+        return "green"
+    if stat_name == "BLK":
         if value < thresholds.blk_yellow_min:
             return "white"
-        elif value < thresholds.blk_green_min:
+        if value < thresholds.blk_green_min:
             return "yellow"
-        else:
-            return "green"
-    elif stat_name == "TO":
+        return "green"
+    if stat_name == "TO":
         if value < thresholds.to_green_max:
             return "green"
-        elif value < thresholds.to_yellow_max:
+        if value < thresholds.to_yellow_max:
             return "yellow"
-        else:
-            return "red"
-    elif stat_name == "FG%":
+        return "red"
+    if stat_name == "FG%":
         if value < thresholds.fg_pct_red_max:
             return "red"
-        elif value < thresholds.fg_pct_yellow_max:
+        if value < thresholds.fg_pct_yellow_max:
             return "yellow"
-        else:
-            return "green"
-    elif stat_name == "FT%":
+        return "green"
+    if stat_name == "FT%":
         if value < thresholds.ft_pct_red_max:
             return "red"
-        elif value < thresholds.ft_pct_yellow_max:
+        if value < thresholds.ft_pct_yellow_max:
             return "yellow"
-        else:
-            return "green"
-    elif stat_name == "USG%":
+        return "green"
+    if stat_name == "USG%":
         if value < thresholds.usg_pct_yellow_min:
             return "white"
-        elif value < thresholds.usg_pct_green_min:
+        if value < thresholds.usg_pct_green_min:
             return "yellow"
-        else:
-            return "green"
-    elif stat_name == "Minute":
+        return "green"
+    if stat_name == "Minute":
         if value < thresholds.min_yellow_min:
             return "white"
-        elif value < thresholds.min_green_min:
+        if value < thresholds.min_green_min:
             return "yellow"
-        else:
-            return "green"
-    elif stat_name == "+/-" or stat_name == "PLUS_MINUS":
+        return "green"
+    if stat_name in ("+/-", "PLUS_MINUS"):
         # Plus-minus: positive is good (green), negative is bad (red)
         if value > 5:
             return "green"
-        elif value > 0:
+        if value > 0:
             return "yellow"
-        elif value >= -5:
+        if value >= -5:
             return "white"
-        else:
-            return "red"
-    else:
-        return "white"
+        return "red"
+    return "white"
 
 
 def render_suggestions_table(suggestions: Sequence[dict]) -> Table:
