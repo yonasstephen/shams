@@ -1974,17 +1974,18 @@ def project_matchup(
     Returns:
         Dict with projection data
     """
-    # Check if boxscore cache has data
-    metadata = boxscore_cache.load_metadata()
+    # Determine season from date first, then load season-specific metadata.
+    # Loading the global metadata (no season arg) is unreliable: the global
+    # metadata.json is legacy/stale — all refresh operations write to
+    # season-specific files (metadata_2025-26.json).
+    season = _current_season()
+    metadata = boxscore_cache.load_metadata(season)
     games_cached = metadata.get("games_cached", 0)
 
     if games_cached == 0:
         raise ValueError(
             "Box score cache is empty. Please run /refresh first to build the cache."
         )
-
-    # Get current season from cache or fall back to date-derived value
-    season = metadata.get("season") or _current_season()
 
     # Check if season stats have been computed
     stats_dir = boxscore_cache.get_cache_dir() / "season_stats" / season
@@ -2121,17 +2122,15 @@ def project_league_matchups(
     """
     # Only check cache if we're doing detailed projections
     if not summary_only:
-        # Check if boxscore cache has data
-        metadata = boxscore_cache.load_metadata()
+        # Determine season from date first, then load season-specific metadata.
+        season = _current_season()
+        metadata = boxscore_cache.load_metadata(season)
         games_cached = metadata.get("games_cached", 0)
 
         if games_cached == 0:
             raise ValueError(
                 "Box score cache is empty. Please run /refresh first to build the cache."
             )
-
-        # Get current season from cache or fall back to date-derived value
-        season = metadata.get("season") or _current_season()
 
         # Check if season stats have been computed
         stats_dir = boxscore_cache.get_cache_dir() / "season_stats" / season
