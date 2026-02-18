@@ -85,10 +85,9 @@ def get_player_name(player: dict) -> str:
 
     if isinstance(name, dict):
         return name.get("full", "")
-    elif isinstance(name, str):
+    if isinstance(name, str):
         return name
-    else:
-        return ""
+    return ""
 
 
 def get_player_position(player: dict) -> str:
@@ -106,10 +105,9 @@ def get_player_position(player: dict) -> str:
 
     if isinstance(selected_position, dict):
         return selected_position.get("position", "")
-    elif isinstance(selected_position, str):
+    if isinstance(selected_position, str):
         return selected_position
-    else:
-        return ""
+    return ""
 
 
 def get_player_eligible_positions(player: dict) -> List[str]:
@@ -142,8 +140,7 @@ def get_player_eligible_positions(player: dict) -> List[str]:
             if pos:
                 result.append(pos)
         return result
-    elif isinstance(eligible_positions, str):
+    if isinstance(eligible_positions, str):
         # Single position as string
         return [eligible_positions]
-    else:
-        return []
+    return []

@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, Iterable, Mapping, Optional, Sequence, Tuple
+from typing import Callable, Dict, Iterable, Mapping, Optional, Sequence
 
 from prompt_toolkit import prompt as pt_prompt
 from prompt_toolkit.completion import FuzzyWordCompleter
@@ -93,7 +93,7 @@ def configure_history() -> None:
         readline.parse_and_bind(r"\e[A: history-search-backward")
         readline.parse_and_bind(r"\e[B: history-search-forward")
     except Exception:  # noqa: BLE001
-        return
+        pass
 
 
 def show_capabilities(
@@ -124,7 +124,7 @@ def show_capabilities(
     try:
         from tools.boxscore import boxscore_cache
 
-        cache_start, cache_end = boxscore_cache.get_cached_date_range()
+        _, cache_end = boxscore_cache.get_cached_date_range()
         metadata = boxscore_cache.load_metadata()
 
         if cache_end:

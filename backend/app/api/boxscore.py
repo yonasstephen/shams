@@ -188,7 +188,7 @@ def get_boxscore_dates(request: Request):
                 # Filename format: YYYYMMDD_gameid.json
                 filename = game_file.name
                 parts = filename.replace(".json", "").split("_")
-                
+
                 if len(parts) >= 2:
                     date_part = parts[0]
                     game_id = "_".join(parts[1:])  # Handle game IDs with underscores
@@ -196,12 +196,12 @@ def get_boxscore_dates(request: Request):
                     if len(date_part) == 8 and date_part.isdigit():
                         # Format as YYYY-MM-DD
                         formatted_date = f"{date_part[:4]}-{date_part[4:6]}-{date_part[6:]}"
-                        
+
                         # Track game IDs for this date
                         if formatted_date not in date_game_ids:
                             date_game_ids[formatted_date] = set()
                         date_game_ids[formatted_date].add(game_id)
-                        
+
                         date_counts[formatted_date] = date_counts.get(formatted_date, 0) + 1
 
         # Also add dates from schedule cache and merge counts
@@ -212,12 +212,12 @@ def get_boxscore_dates(request: Request):
                 # Count scheduled games that don't have boxscores yet
                 scheduled_without_boxscore = 0
                 existing_game_ids = date_game_ids.get(date_str, set())
-                
+
                 for game in games_list:
                     game_id = game.get("game_id", "")
                     if game_id not in existing_game_ids:
                         scheduled_without_boxscore += 1
-                
+
                 # Add scheduled games to the count
                 if date_str in date_counts:
                     # Date has some boxscores, add scheduled games without boxscores
@@ -236,7 +236,7 @@ def get_boxscore_dates(request: Request):
         return dates
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get dates: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get dates: {str(e)}") from e
 
 
 @router.get("/latest-date", response_model=LatestDateResponse)
@@ -270,7 +270,7 @@ def get_latest_date(request: Request):
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to get latest date: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/games/{date}", response_model=List[GameBoxScore])
@@ -290,10 +290,10 @@ def get_games_for_date(request: Request, date: str):
         # Validate date format
         try:
             date_cls.fromisoformat(date)
-        except ValueError:
+        except ValueError as e:
             raise HTTPException(
                 status_code=400, detail="Invalid date format. Use YYYY-MM-DD"
-            )
+            ) from e
 
         # Get metadata to find current season
         metadata = boxscore_cache.load_metadata()
@@ -314,7 +314,7 @@ def get_games_for_date(request: Request, date: str):
             # Find all game files for this date
             for game_file in sorted(games_dir.glob(f"{date_prefix}_*.json")):
                 try:
-                    with open(game_file, "r") as f:
+                    with open(game_file, "r", encoding="utf-8") as f:
                         game_data = json.load(f)
 
                     game_id = game_data.get("game_id", "")
@@ -396,7 +396,7 @@ def get_games_for_date(request: Request, date: str):
 
                     games.append(game_box_score)
 
-                except (json.JSONDecodeError, IOError) as e:
+                except (json.JSONDecodeError, IOError):
                     # Skip invalid game files
                     continue
 
@@ -409,9 +409,6 @@ def get_games_for_date(request: Request, date: str):
             if game_id not in games_with_boxscores:
                 # Extract date from game_datetime if available
                 game_datetime = scheduled_game.get("game_datetime", "")
-                game_time_only = (
-                    game_datetime.split("T")[1] if "T" in game_datetime else None
-                )
 
                 game_box_score = GameBoxScore(
                     game_id=game_id,
@@ -436,7 +433,7 @@ def get_games_for_date(request: Request, date: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get games: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get games: {str(e)}") from e
 
 
 @router.get(
@@ -541,4 +538,4 @@ def get_player_insights(request: Request, game_id: str, player_id: int):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to analyze player performance: {str(e)}",
-        )
+        ) from e

@@ -9,7 +9,7 @@ from typing import Dict, Iterable, List, Optional
 
 from nba_api.stats.endpoints import playercareerstats
 
-from tools.utils import nba_api_config  # noqa: F401 - Configure NBA API timeout
+from tools.utils import nba_api_config  # noqa: F401  # pylint: disable=unused-import
 
 
 @dataclass

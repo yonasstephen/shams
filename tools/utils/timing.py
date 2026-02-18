@@ -114,10 +114,9 @@ class TimingTracker:
         """
         if seconds >= 1.0:
             return f"{seconds:.2f}s"
-        elif seconds >= 0.001:
+        if seconds >= 0.001:
             return f"{seconds * 1000:.1f}ms"
-        else:
-            return f"{seconds * 1000000:.0f}µs"
+        return f"{seconds * 1000000:.0f}µs"
 
     def get_summary(self) -> Dict[str, Dict[str, float | int | str]]:
         """Get summary of all tracked operations.

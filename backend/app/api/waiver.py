@@ -62,7 +62,7 @@ def _player_stats_to_model(stats) -> Optional[PlayerStats]:
 
 def _compute_waiver_trends(
     league_key: str,
-    refresh_cache: bool = False,
+    _refresh_cache: bool = False,
     display_count: int = 50,
     stats_mode: str = "last",
     agg_mode: str = "avg",
@@ -256,8 +256,6 @@ def _compute_waiver_trends(
             next_week_games = 0
             if week_start and week_end and nba_player_id:
                 try:
-                    from tools.schedule import schedule_fetcher
-
                     schedule = schedule_fetcher.fetch_player_upcoming_games_from_cache(
                         nba_player_id,
                         week_start.isoformat(),
@@ -278,8 +276,6 @@ def _compute_waiver_trends(
             # Calculate games for next week
             if next_week_start and next_week_end and nba_player_id:
                 try:
-                    from tools.schedule import schedule_fetcher
-
                     next_schedule = (
                         schedule_fetcher.fetch_player_upcoming_games_from_cache(
                             nba_player_id,
@@ -349,7 +345,7 @@ def get_waiver_players(
     try:
         players_data, current_week, cache_metadata = _compute_waiver_trends(
             league_key=league_key,
-            refresh_cache=refresh,
+            _refresh_cache=refresh,
             display_count=count,
             stats_mode=stats_mode,
             agg_mode=agg_mode,
@@ -395,16 +391,16 @@ def get_waiver_players(
             current_week=current_week,
             cache_info=cache_info,
         )
-    except YahooAuthError:
+    except YahooAuthError as e:
         raise HTTPException(
             status_code=401,
             detail="Authentication expired. Please refresh the page to re-authenticate.",
-        )
+        ) from e
     except Exception as e:
         logger.error("Failed to fetch waiver players: %s", e)
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch waiver players: {str(e)}"
-        )
+        ) from e
 
 
 @router.post("/refresh")
@@ -425,13 +421,13 @@ def refresh_waiver_cache(
         waiver_cache.save_cached_players(league_key, players)
 
         return {"message": "Cache refreshed successfully", "player_count": len(players)}
-    except YahooAuthError:
+    except YahooAuthError as e:
         raise HTTPException(
             status_code=401,
             detail="Authentication expired. Please refresh the page to re-authenticate.",
-        )
+        ) from e
     except Exception as e:
         logger.error("Failed to refresh cache: %s", e)
         raise HTTPException(
             status_code=500, detail=f"Failed to refresh cache: {str(e)}"
-        )
+        ) from e

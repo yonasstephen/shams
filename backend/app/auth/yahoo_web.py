@@ -42,7 +42,7 @@ def _load_tokens_from_env_file() -> Optional[dict]:
 
     try:
         tokens = {}
-        with open(env_file, "r") as f:
+        with open(env_file, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith("#"):
@@ -82,26 +82,26 @@ def _load_tokens_from_env_file() -> Optional[dict]:
 def _cleanup_expired_sessions() -> None:
     """Remove expired sessions from memory and disk."""
     global _sessions
-    
+
     expired_sessions = []
     current_time = time.time()
-    
+
     for session_id, session_data in list(_sessions.items()):
         # Check both yahoo_tokens and user_data for expiry
         tokens = session_data.get("yahoo_tokens") or session_data.get("user_data", {})
-        
+
         if not tokens:
             expired_sessions.append(session_id)
             continue
-        
+
         token_created_at = tokens.get("token_created_at")
         expires_in = tokens.get("expires_in")
-        
+
         # If missing required fields, consider expired
         if not token_created_at or not expires_in:
             expired_sessions.append(session_id)
             continue
-        
+
         try:
             expiry_time = float(token_created_at) + int(expires_in)
             # Consider expired if past expiry time (no buffer here, just cleanup)
@@ -109,7 +109,7 @@ def _cleanup_expired_sessions() -> None:
                 expired_sessions.append(session_id)
         except (ValueError, TypeError):
             expired_sessions.append(session_id)
-    
+
     # Remove expired sessions
     for session_id in expired_sessions:
         _sessions.pop(session_id, None)
@@ -126,7 +126,7 @@ def _load_sessions_from_disk() -> None:
     # First, try to load existing sessions
     if SESSION_FILE.exists():
         try:
-            with open(SESSION_FILE, "r") as f:
+            with open(SESSION_FILE, "r", encoding="utf-8") as f:
                 _sessions = json.load(f)
 
         except Exception as e:
@@ -154,7 +154,7 @@ def _load_sessions_from_disk() -> None:
                 "yahoo_tokens": tokens,
             }
             _save_sessions_to_disk()
-    
+
     # Clean up any expired sessions
     _cleanup_expired_sessions()
 
@@ -163,8 +163,8 @@ def _save_sessions_to_disk() -> None:
     """Save sessions to disk."""
     try:
         SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(SESSION_FILE, "w") as f:
+
+        with open(SESSION_FILE, "w", encoding="utf-8") as f:
             json.dump(_sessions, f, indent=2)
     except Exception as e:
         logger.error("Failed to save sessions to disk: %s", e)
@@ -185,19 +185,19 @@ def get_or_create_session_from_tokens() -> Optional[str]:
         # Find the session with the most recent token_created_at
         newest_session_id = None
         newest_timestamp = 0
-        
+
         for session_id, session_data in _sessions.items():
             # Check both yahoo_tokens and user_data for token_created_at
             tokens = session_data.get("yahoo_tokens") or session_data.get("user_data", {})
             token_created_at = tokens.get("token_created_at", 0)
-            
+
             if token_created_at and token_created_at > newest_timestamp:
                 newest_timestamp = token_created_at
                 newest_session_id = session_id
-        
+
         if newest_session_id:
             return newest_session_id
-        
+
         # Fallback to first session if no timestamps found
         return next(iter(_sessions.keys()))
 
@@ -229,7 +229,7 @@ def _load_oauth_states_from_disk() -> None:
 
     if OAUTH_STATES_FILE.exists():
         try:
-            with open(OAUTH_STATES_FILE, "r") as f:
+            with open(OAUTH_STATES_FILE, "r", encoding="utf-8") as f:
                 _oauth_states = json.load(f)
             # Clean up expired states (older than 10 minutes)
             current_time = time.time()
@@ -250,7 +250,7 @@ def _save_oauth_states_to_disk() -> None:
     """Save OAuth states to disk."""
     try:
         OAUTH_STATES_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(OAUTH_STATES_FILE, "w") as f:
+        with open(OAUTH_STATES_FILE, "w", encoding="utf-8") as f:
             json.dump(_oauth_states, f)
     except Exception as e:
         logger.error("Failed to save OAuth states to disk: %s", e)
@@ -351,7 +351,7 @@ def _refresh_access_token(session_id: str, refresh_token: str) -> dict:
     }
 
     try:
-        response = requests.post(token_url, data=token_data)
+        response = requests.post(token_url, data=token_data, timeout=30)
         response.raise_for_status()
         new_tokens = response.json()
 
@@ -370,7 +370,7 @@ def _refresh_access_token(session_id: str, refresh_token: str) -> dict:
         logger.error("Failed to refresh token: %s", e)
         raise HTTPException(
             status_code=401, detail=f"Failed to refresh token: {str(e)}"
-        )
+        ) from e
 
 
 def get_session_from_request(request: Request) -> dict:
@@ -384,7 +384,7 @@ def get_session_from_request(request: Request) -> dict:
         session_id = serializer.loads(session_cookie, max_age=86400 * 30)  # 30 days
     except Exception as e:
         logger.warning("Failed to decode session cookie: %s", e)
-        raise HTTPException(status_code=401, detail="Invalid session")
+        raise HTTPException(status_code=401, detail="Invalid session") from e
 
     session = get_session(session_id)
     if not session:
@@ -401,11 +401,8 @@ def get_session_from_request(request: Request) -> dict:
     if _is_token_expired(tokens):
         refresh_token = tokens.get("refresh_token")
         if refresh_token:
-            try:
-                # _refresh_access_token handles updating session and saving to disk
-                _refresh_access_token(session_id, refresh_token)
-            except HTTPException:
-                raise
+            # _refresh_access_token handles updating session and saving to disk
+            _refresh_access_token(session_id, refresh_token)
         else:
             raise HTTPException(
                 status_code=401, detail="Token expired and cannot be refreshed"
@@ -429,7 +426,7 @@ def save_yahoo_tokens(session_id: str, tokens: dict) -> None:
     token_created_at = tokens.get("token_created_at", time.time())
 
     from tools.utils.file_utils import write_env_file
-    
+
     env_vars = {
         "YAHOO_ACCESS_TOKEN": tokens.get("access_token", ""),
         "YAHOO_REFRESH_TOKEN": tokens.get("refresh_token", ""),
@@ -441,9 +438,6 @@ def save_yahoo_tokens(session_id: str, tokens: dict) -> None:
 
     # Clear the yfpy query cache to force recreation with new tokens
     try:
-        import sys
-        from pathlib import Path
-
         # Add project root to path (parent.parent.parent.parent goes from backend/app/auth/ to project root)
         project_root = Path(__file__).parent.parent.parent.parent
         if str(project_root) not in sys.path:

@@ -99,7 +99,7 @@ def _load_index() -> dict:
         }
 
     try:
-        with open(index_path, "r") as f:
+        with open(index_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, IOError):
         return {
@@ -119,7 +119,7 @@ def _save_index(index: dict) -> None:
     index_path = _get_index_path()
 
     try:
-        with open(index_path, "w") as f:
+        with open(index_path, "w", encoding="utf-8") as f:
             json.dump(index, f, indent=2)
     except IOError as e:
         print(f"Warning: Could not save player index: {e}")
@@ -341,7 +341,7 @@ def load_rankings(league_key: str) -> Optional[List[dict]]:
         return None
 
     try:
-        with open(cache_path, "r") as f:
+        with open(cache_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             return data.get("players", [])
     except (json.JSONDecodeError, IOError):
@@ -360,7 +360,7 @@ def save_rankings(league_key: str, players: List[dict]) -> None:
     cache_path = _get_rankings_path(league_key)
 
     try:
-        with open(cache_path, "w") as f:
+        with open(cache_path, "w", encoding="utf-8") as f:
             json.dump(
                 {
                     "players": players,
@@ -512,7 +512,7 @@ def is_rankings_cache_stale(league_key: str, max_age_hours: float = 24.0) -> boo
         return True
 
     try:
-        with open(cache_path, "r") as f:
+        with open(cache_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             timestamp_str = data.get("timestamp")
             if not timestamp_str:
@@ -540,7 +540,7 @@ def get_rankings_cache_metadata(league_key: str) -> Optional[Dict[str, Any]]:
         return None
 
     try:
-        with open(cache_path, "r") as f:
+        with open(cache_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             timestamp_str = data.get("timestamp")
             player_count = data.get("player_count", len(data.get("players", [])))
@@ -578,4 +578,3 @@ def clear_rankings_cache(league_key: str) -> None:
             cache_path.unlink()
         except IOError:
             pass
-

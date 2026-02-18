@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from typing import Dict
 
 
 def _resolve_float_env(env_var: str, default: float) -> float:

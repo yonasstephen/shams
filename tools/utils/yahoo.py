@@ -37,7 +37,7 @@ class TokenRefreshQueryWrapper:
     def _force_token_refresh(self):
         """Manually refresh OAuth tokens using the refresh token."""
         import requests
-        from dotenv import load_dotenv, set_key
+        from dotenv import load_dotenv
 
         # Use the DEFAULT_TOKEN_DIR instead of trying to access the query's attribute
         env_file = DEFAULT_TOKEN_DIR / ".env"
@@ -125,8 +125,6 @@ class TokenRefreshQueryWrapper:
                         print(f"[WARNING] Manual token refresh failed: {refresh_err}")
 
                     # Reload environment variables to pick up refreshed tokens
-                    from dotenv import load_dotenv
-
                     # Must specify the correct path where tokens were saved
                     load_dotenv(DEFAULT_TOKEN_DIR / ".env", override=True)
 
@@ -143,7 +141,7 @@ class TokenRefreshQueryWrapper:
                         raise YahooAuthError(
                             "Yahoo credentials missing after token refresh. "
                             "Please set YAHOO_CONSUMER_KEY and YAHOO_CONSUMER_SECRET."
-                        )
+                        ) from exc
 
                     # Get a fresh query object and retry
                     # Note: We get the underlying _query, not a wrapped one, to avoid recursion
@@ -760,10 +758,7 @@ def fetch_and_cache_league_roster_positions(league_key: str) -> List[str]:
     Returns:
         List of position slot strings (e.g., ["PG", "SG", "G", "SF", "PF", "F", "C", "Util", "Util", "BN", "BN", "IL"])
     """
-    import logging
     from tools.utils import league_cache
-    
-    logger = logging.getLogger(__name__)
 
     # Check cache first
     cached_positions = league_cache.load_league_roster_settings(league_key)

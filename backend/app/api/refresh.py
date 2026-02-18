@@ -100,11 +100,9 @@ class ProgressDisplayAdapter:
 
     def start(self) -> None:
         """Start display (no-op for SSE)."""
-        pass
 
     def stop(self) -> None:
         """Stop display (no-op for SSE)."""
-        pass
 
     def __enter__(self):
         """Context manager entry."""
@@ -152,8 +150,6 @@ def refresh_box_scores_sync(
         result = boxscore_refresh.initial_build(season=season)
     elif start_date or end_date:
         # Specific date range refresh
-        from datetime import date as date_cls
-
         progress.update_status(
             f"Refreshing specific date range: {start_date or 'season start'} to {end_date or 'today'}..."
         )
@@ -178,7 +174,7 @@ def refresh_box_scores_sync(
 
 
 def refresh_waiver_cache_data_sync(
-    progress: ProgressDisplayAdapter, league_key: str
+    progress: ProgressDisplayAdapter, _league_key: str
 ) -> dict:
     """Refresh waiver cache with progress tracking (synchronous)."""
     progress.update_status("Clearing waiver cache...")
@@ -252,7 +248,7 @@ def refresh_nba_schedule_sync(
         schedule_refresh.set_progress_display(progress)
 
         # Fetch and cache all team schedules
-        date_game_ids, game_times = schedule_refresh.cache_all_team_schedules(target_season)
+        date_game_ids, _ = schedule_refresh.cache_all_team_schedules(target_season)
 
         # Count unique dates with games
         dates_with_games = len(date_game_ids)
@@ -474,7 +470,7 @@ def format_sse_event(event: dict) -> str:
 async def start_refresh(
     request: Request,
     box_scores: bool = Query(False, description="Refresh box scores"),
-    waiver_cache: bool = Query(False, description="Clear waiver cache"),
+    refresh_waiver: bool = Query(False, description="Clear waiver cache"),
     leagues: bool = Query(False, description="Refresh league data"),
     rebuild_player_indexes: bool = Query(False, description="Rebuild player indexes"),
     player_rankings: bool = Query(False, description="Refresh player rankings from Yahoo"),
@@ -508,7 +504,7 @@ async def start_refresh(
 
     options = RefreshOptions(
         box_scores=box_scores,
-        waiver_cache=waiver_cache,
+        waiver_cache=refresh_waiver,
         leagues=leagues,
         rebuild_player_indexes=rebuild_player_indexes,
         player_rankings=player_rankings,
@@ -554,8 +550,6 @@ def get_missing_games(
         - total_cached: Total cached games in range
         - dates_with_missing: Number of dates that have missing games
     """
-    from datetime import date as date_cls
-
     from nba_api.stats.library.parameters import SeasonAll
 
     from tools.boxscore.boxscore_refresh import _detect_active_season
@@ -599,7 +593,7 @@ def get_missing_games(
         total_expected = 0
         total_cached = 0
 
-        for date_str, info in missing_by_date.items():
+        for _, info in missing_by_date.items():
             total_missing += info["missing_count"]
             total_expected += info["expected"]
             total_cached += info["cached"]
@@ -892,5 +886,3 @@ async def retry_missing_games_stream(
             "X-Accel-Buffering": "no",
         },
     )
-
-

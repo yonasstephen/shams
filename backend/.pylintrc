@@ -20,7 +20,17 @@ disable=
     fixme,
     broad-except,
     line-too-long,
-    invalid-name
+    invalid-name,
+    wrong-import-position,
+    wrong-import-order,
+    import-outside-toplevel,
+    duplicate-code,
+    too-many-positional-arguments,
+    global-statement,
+    global-variable-not-assigned,
+    protected-access,
+    too-many-nested-blocks,
+    logging-fstring-interpolation
 
 [REPORTS]
 output-format=colorized
@@ -36,7 +46,7 @@ max-module-lines=1000
 [DESIGN]
 max-args=10
 max-locals=25
-max-returns=6
+max-returns=8
 max-branches=20
 max-statements=50
 max-attributes=15

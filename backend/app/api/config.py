@@ -61,7 +61,7 @@ def _load_config() -> dict:
         return {}
 
     try:
-        with open(CONFIG_FILE, "r") as f:
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, IOError):
         return {}
@@ -72,12 +72,12 @@ def _save_config(config: dict) -> None:
     _ensure_config_dir()
 
     try:
-        with open(CONFIG_FILE, "w") as f:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
     except IOError as err:
         raise HTTPException(
             status_code=500, detail=f"Failed to save config: {str(err)}"
-        )
+        ) from err
 
 
 def save_league_settings(league_key: str, current_week: int, total_weeks: int) -> None:
@@ -199,8 +199,7 @@ def clear_league_cache(league_key: Optional[str] = None):
 
     if league_key:
         return {"message": f"League settings cache cleared for {league_key}"}
-    else:
-        return {"message": "All league settings cache cleared"}
+    return {"message": "All league settings cache cleared"}
 
 
 class CacheStatusResponse(BaseModel):
@@ -248,7 +247,7 @@ def get_cache_status():
         Cache status with last date, game count, and season
     """
     try:
-        cache_start, cache_end = boxscore_cache.get_cached_date_range()
+        _, cache_end = boxscore_cache.get_cached_date_range()
         metadata = boxscore_cache.load_metadata()
         _today = datetime.now()
         _year = _today.year if _today.month >= 10 else _today.year - 1
@@ -269,7 +268,7 @@ def get_cache_status():
                     game_files = list(games_dir.glob("*.json"))
                     if game_files:
                         # Found games, compute date range from files
-                        start_str, end_str = _compute_date_range_from_files(games_dir)
+                        _, end_str = _compute_date_range_from_files(games_dir)
                         if end_str:
                             return CacheStatusResponse(
                                 has_cache=True,
@@ -311,27 +310,27 @@ class SeasonInfoResponse(BaseModel):
 
 def _get_available_seasons() -> list[str]:
     """Get list of available NBA seasons.
-    
+
     Returns seasons from 2020-21 to current season + 1 (for future seasons).
     """
     from datetime import date
-    
+
     today = date.today()
     year = today.year
     month = today.month
-    
+
     # Determine current season year
     if month >= 10:
         current_season_year = year
     else:
         current_season_year = year - 1
-    
+
     # Generate seasons from 2020-21 to current + 1
     seasons = []
     for season_year in range(2020, current_season_year + 2):
         season_str = f"{season_year}-{str(season_year + 1)[-2:]}"
         seasons.append(season_str)
-    
+
     # Return in reverse order (newest first)
     return list(reversed(seasons))
 
@@ -451,7 +450,7 @@ def get_cache_debug():
                         box_score_data = None
 
                         try:
-                            with open(game_file, "r") as f:
+                            with open(game_file, "r", encoding="utf-8") as f:
                                 game_data = json.load(f)
                                 matchup = game_data.get("matchup", "")
                                 home_team = game_data.get("home_team", "")
@@ -500,7 +499,7 @@ def get_cache_debug():
 
                 for stats_file in sorted(season_dir.glob("*.json")):
                     try:
-                        with open(stats_file, "r") as f:
+                        with open(stats_file, "r", encoding="utf-8") as f:
                             data = json.load(f)
                             player_stats.append(
                                 {
@@ -537,7 +536,7 @@ def get_cache_debug():
 
                     try:
                         # Load file to get games count
-                        with open(schedule_file, "r") as f:
+                        with open(schedule_file, "r", encoding="utf-8") as f:
                             data = json.load(f)
                             games_count = len(data.get("dates", []))
 

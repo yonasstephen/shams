@@ -73,16 +73,16 @@ def get_matchup_projection(
             optimize_user_roster=optimize_user_roster,
             optimize_opponent_roster=optimize_opponent_roster,
         )
-    except YahooAuthError:
+    except YahooAuthError as e:
         raise HTTPException(
             status_code=401,
             detail="Authentication expired. Please refresh the page to re-authenticate.",
-        )
+        ) from e
     except Exception as e:
         logger.exception("Failed to fetch matchup projection: %s", e)
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch matchup projection: {str(e)}"
-        )
+        ) from e
 
     try:
 
@@ -259,7 +259,7 @@ def get_matchup_projection(
         logger.error("Failed to build matchup response: %s", e)
         raise HTTPException(
             status_code=500, detail=f"Failed to build matchup response: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/all", response_model=AllMatchupsResponse)
@@ -293,16 +293,16 @@ def get_all_matchups(
         result = project_league_matchups(
             league_key, projection_mode=projection_mode, summary_only=True
         )
-    except YahooAuthError:
+    except YahooAuthError as e:
         raise HTTPException(
             status_code=401,
             detail="Authentication expired. Please refresh the page to re-authenticate.",
-        )
+        ) from e
     except Exception as e:
         logger.exception("Failed to fetch all matchups: %s", e)
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch all matchups: {str(e)}"
-        )
+        ) from e
 
     try:
 
@@ -361,7 +361,7 @@ def get_all_matchups(
         logger.error("Failed to build all matchups response: %s", e)
         raise HTTPException(
             status_code=500, detail=f"Failed to build all matchups response: {str(e)}"
-        )
+        ) from e
 
 
 def _extract_points(points_obj) -> float:

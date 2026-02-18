@@ -17,39 +17,39 @@ def sanitize_env_file(file_path: Union[str, Path]) -> None:
         file_path: Path to the .env file to sanitize
     """
     file_path = Path(file_path)
-    
+
     if not file_path.exists():
         return
-    
+
     try:
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding="utf-8") as f:
             lines = f.readlines()
     except Exception:
         return
-    
+
     # Filter out malformed lines
     valid_lines = []
     seen_keys = set()
-    
+
     for line in lines:
         line = line.strip()
-        
+
         # Skip empty lines and comments
         if not line or line.startswith('#'):
             continue
-        
+
         # Must have '=' to be valid
         if '=' not in line:
             continue
-        
+
         # Extract key and check for duplicates (keep first occurrence)
         key = line.split('=', 1)[0]
         if key in seen_keys:
             continue
-        
+
         seen_keys.add(key)
         valid_lines.append(line)
-    
+
     # Rewrite the file atomically if we removed any lines
     if len(valid_lines) != len([l for l in lines if l.strip() and not l.strip().startswith('#')]):
         content = '\n'.join(valid_lines) + '\n'
@@ -70,10 +70,10 @@ def atomic_write(file_path: Union[str, Path], content: str) -> None:
         content: Content to write to the file
     """
     file_path = Path(file_path)
-    
+
     # Ensure parent directory exists
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Create a temporary file in the same directory as the target
     # This ensures the rename operation is atomic (same filesystem)
     fd, temp_path = tempfile.mkstemp(
@@ -81,12 +81,12 @@ def atomic_write(file_path: Union[str, Path], content: str) -> None:
         prefix=f".{file_path.name}.",
         suffix=".tmp"
     )
-    
+
     try:
         # Write content to temporary file
         with os.fdopen(fd, 'w') as f:
             f.write(content)
-        
+
         # Atomic rename - this is atomic on POSIX systems
         os.replace(temp_path, file_path)
     except Exception:
@@ -112,7 +112,6 @@ def write_env_file(file_path: Union[str, Path], env_vars: dict) -> None:
             lines.append(f'{key}="{value}"')
         else:
             lines.append(f'{key}={value}')
-    
+
     content = '\n'.join(lines) + '\n'
     atomic_write(file_path, content)
-

@@ -38,7 +38,7 @@ class LeagueSettingsResponse(BaseModel):
 
 @router.get("/{league_key}/settings", response_model=LeagueSettingsResponse)
 def get_league_settings(
-    request: Request, league_key: str, force_refresh: bool = False
+    _request: Request, league_key: str, force_refresh: bool = False
 ):
     """Get league settings including current week and total weeks.
 
@@ -88,8 +88,7 @@ def get_league_settings(
                 continue
             try:
                 week_value = int(matchup.week)
-                if week_value > max_week:
-                    max_week = week_value
+                max_week = max(max_week, week_value)
             except (TypeError, ValueError, AttributeError):
                 continue
 
@@ -104,16 +103,16 @@ def get_league_settings(
         )
 
     except YahooAuthError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        raise HTTPException(status_code=401, detail=str(e)) from e
     except Exception as e:
         logger.exception("Failed to fetch league settings: %s", e)
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch league settings: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/{league_key}/team-schedule", response_model=TeamScheduleResponse)
-def get_team_schedule(request: Request, league_key: str):
+def get_team_schedule(_request: Request, league_key: str):
     """Get team schedules for current and next fantasy week.
 
     Returns all 30 NBA teams with their game schedules for the current and next
@@ -235,8 +234,8 @@ def get_team_schedule(request: Request, league_key: str):
         )
 
     except YahooAuthError as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        raise HTTPException(status_code=401, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch team schedule: {str(e)}"
-        )
+        ) from e

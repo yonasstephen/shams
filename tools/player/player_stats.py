@@ -89,27 +89,24 @@ def _parse_stat_mode(mode: str) -> tuple[Optional[int], Optional[int]]:
 
     if mode_lower == "last":
         return (1, None)
-    elif mode_lower == "season":
+    if mode_lower == "season":
         return (None, None)  # Use all available games
-    elif mode_lower.startswith("last"):
+    if mode_lower.startswith("last"):
         # Check if it ends with 'd' for days (e.g., 'last7d')
         if mode_lower.endswith("d"):
             try:
-                num_days = int(
-                    mode_lower[4:-1]
-                )  # Extract number between 'last' and 'd'
+                num_days = int(mode_lower[4:-1])  # Extract number between 'last' and 'd'
                 return (None, num_days if num_days > 0 else 1)
             except (ValueError, IndexError):
-                return (1, None)  # Default to last game if parsing fails
+                pass  # Fall through to default
         else:
             # Extract number from 'last7', 'last10', etc. (games)
             try:
                 num_games = int(mode_lower[4:])
                 return (num_games if num_games > 0 else 1, None)
             except (ValueError, IndexError):
-                return (1, None)  # Default to last game if parsing fails
-    else:
-        return (1, None)  # Default to last game
+                pass  # Fall through to default
+    return (1, None)  # Default to last game
 
 
 def compute_player_stats(

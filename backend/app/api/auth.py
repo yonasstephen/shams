@@ -83,7 +83,7 @@ def _get_yahoo_user_email(access_token: str) -> str:
     profile_url = "https://social.yahooapis.com/v1/user/me/profile?format=json"
 
     try:
-        response = requests.get(profile_url, headers=headers)
+        response = requests.get(profile_url, headers=headers, timeout=30)
         response.raise_for_status()
         profile_data = response.json()
 
@@ -102,11 +102,11 @@ def _get_yahoo_user_email(access_token: str) -> str:
         logger.error("Failed to fetch Yahoo user email: %s", e)
         raise HTTPException(
             status_code=500, detail=f"Failed to retrieve user email: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/callback")
-def auth_callback(code: str, state: str, response: Response):
+def auth_callback(code: str, state: str, _response: Response):
     """Handle Yahoo OAuth callback."""
     # Validate state token
     if not yahoo_web.validate_oauth_state(state):
@@ -126,7 +126,7 @@ def auth_callback(code: str, state: str, response: Response):
     }
 
     try:
-        token_response = requests.post(token_url, data=token_data)
+        token_response = requests.post(token_url, data=token_data, timeout=30)
         token_response.raise_for_status()
         tokens = token_response.json()
 
@@ -160,7 +160,7 @@ def auth_callback(code: str, state: str, response: Response):
         raise
     except Exception as e:
         logger.exception("Token exchange failed: %s", e)
-        raise HTTPException(status_code=500, detail=f"Token exchange failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Token exchange failed: {str(e)}") from e
 
     # Set session cookie and redirect
     # Note: We need to create the redirect response first, then set cookie on it
@@ -190,49 +190,46 @@ def logout(request: Request, response: Response):
 @router.get("/me")
 def get_current_user(request: Request):
     """Get current user info."""
-    session = yahoo_web.get_session_from_request(request)
+    yahoo_web.get_session_from_request(request)
 
     # Try to fetch user's leagues to verify authentication
     try:
         leagues = fetch_user_leagues()
         return {"authenticated": True, "leagues": leagues}
     except YahooAuthError as e:
-        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
+        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}") from e
     except Exception as e:
         logger.error("Unexpected error in /me: %s", e)
         raise HTTPException(
             status_code=500, detail=f"Failed to verify authentication: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/leagues")
 def get_user_leagues(request: Request):
     """Get user's Yahoo Fantasy leagues."""
     session_id = None
-    try:
-        # Get session ID from cookie for potential cleanup
-        session_cookie = request.cookies.get("session")
-        if session_cookie:
-            try:
-                session_id = yahoo_web.serializer.loads(session_cookie, max_age=86400 * 30)
-            except Exception:
-                pass
-        session = yahoo_web.get_session_from_request(request)
-    except HTTPException as e:
-        # Re-raise auth errors (401) directly
-        raise
+    # Get session ID from cookie for potential cleanup
+    session_cookie = request.cookies.get("session")
+    if session_cookie:
+        try:
+            session_id = yahoo_web.serializer.loads(session_cookie, max_age=86400 * 30)
+        except Exception:
+            pass
+    # Verify authentication - raises HTTPException if not authenticated
+    yahoo_web.get_session_from_request(request)
 
     try:
         leagues = fetch_user_leagues()
         return {"leagues": leagues}
-    except YahooAuthError:
+    except YahooAuthError as e:
         # Yahoo authentication failed - token expired or invalid
         # Clear the session to force re-authentication
         if session_id:
             yahoo_web.delete_session(session_id)
         raise HTTPException(
             status_code=401, detail="Authentication expired. Please log in again."
-        )
+        ) from e
     except Exception as e:
         error_msg = str(e).lower()
         # Check if this is an authentication error
@@ -242,8 +239,8 @@ def get_user_leagues(request: Request):
         ):
             raise HTTPException(
                 status_code=401, detail="Authentication expired. Please log in again."
-            )
+            ) from e
         logger.exception("Failed to fetch leagues: %s", e)
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch leagues: {str(e)}"
-        )
+        ) from e

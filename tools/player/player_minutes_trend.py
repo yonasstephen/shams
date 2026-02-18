@@ -12,12 +12,12 @@ import difflib
 import os
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Iterable, List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 from nba_api.stats.endpoints import playerindex
 from nba_api.stats.static import players as players_static
 
-from tools.utils import nba_api_config  # noqa: F401 - Configure NBA API timeout
+from tools.utils import nba_api_config  # noqa: F401  # pylint: disable=unused-import
 
 SeasonType = str
 
@@ -31,11 +31,11 @@ SEASON_TYPE_CHOICES: Tuple[SeasonType, ...] = (
 _SEASON_TYPE_LOOKUP = {
     key: value
     for value in SEASON_TYPE_CHOICES
-    for key in {
+    for key in [  # pylint: disable=use-sequence-for-iteration
         value.lower(),
         value.replace(" ", "").lower(),
         value.replace(" ", "_").lower(),
-    }
+    ]
 }
 _SEASON_TYPE_LOOKUP.update(
     {
@@ -229,11 +229,11 @@ def parse_minutes(min_value: str) -> Optional[float]:
 
 def fetch_recent_minute_logs(
     player_id: int,
-    season_type: SeasonType,
+    season_type: SeasonType,  # pylint: disable=unused-argument
     count: int = 4,
-    timeout: int = NBA_API_TIMEOUT,
+    timeout: int = NBA_API_TIMEOUT,  # pylint: disable=unused-argument
 ) -> List[Tuple[str, float, str]]:
-    from datetime import date, timedelta
+    from datetime import date
 
     from nba_api.stats.library.parameters import SeasonAll
 

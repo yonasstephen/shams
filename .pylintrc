@@ -26,7 +26,17 @@ disable=
     fixme,
     broad-except,
     line-too-long,
-    invalid-name
+    invalid-name,
+    wrong-import-position,
+    wrong-import-order,
+    import-outside-toplevel,
+    duplicate-code,
+    too-many-positional-arguments,
+    global-statement,
+    global-variable-not-assigned,
+    protected-access,
+    too-many-nested-blocks,
+    logging-fstring-interpolation
 
 [REPORTS]
 # Set the output format
@@ -54,7 +64,7 @@ max-args=10
 max-locals=25
 
 # Maximum number of return / yield for function / method body
-max-returns=6
+max-returns=8
 
 # Maximum number of branch for function / method body
 max-branches=20

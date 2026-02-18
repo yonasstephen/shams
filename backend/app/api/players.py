@@ -419,7 +419,7 @@ def search_players(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to search players: {str(e)}"
-        )
+        ) from e
 
     if isinstance(result, SuggestionResponse):
         suggestions = [
@@ -433,7 +433,7 @@ def search_players(
         ]
         return PlayerSearchResponse(suggestions=suggestions, exact_match=False)
 
-    elif isinstance(result, TrendComputation):
+    if isinstance(result, TrendComputation):
         # Exact match found
         suggestion = PlayerSuggestion(
             player_id=result.player_id,
@@ -559,7 +559,7 @@ def get_ranked_players(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch ranked players: {str(e)}"
-        )
+        ) from e
 
 
 @router.get("/{player_id}", response_model=PlayerStatsResponse)
@@ -657,4 +657,4 @@ def get_player_stats(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch player stats: {str(e)}"
-        )
+        ) from e
