@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date, timedelta
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 from tools.boxscore import boxscore_cache
 from tools.player import player_fetcher
@@ -22,6 +22,17 @@ from tools.utils.yahoo import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _current_season() -> str:
+    """Return the active NBA season string derived from today's date (e.g. '2025-26').
+
+    Oct–Dec  → first year of the new season  (e.g. Oct 2025 → 2025-26)
+    Jan–Sep  → second year of the current season (e.g. Feb 2026 → 2025-26)
+    """
+    today = date.today()
+    year = today.year if today.month >= 10 else today.year - 1
+    return f"{year}-{str(year + 1)[-2:]}"
 
 
 def _date_range(start: date, end: date) -> Iterable[date]:
@@ -99,7 +110,17 @@ def _collect_roster(
         f"Collecting roster for team {team_id} from {start.isoformat()} to {end.isoformat()} (today: {today.isoformat()})"
     )
 
+    last_fetched: List[dict] = []
     for current in _date_range(start, end):
+        if current > today:
+            # Yahoo's API rejects future-date roster requests.
+            # Reuse the most recent fetched roster as the standing projection lineup.
+            rosters[current.isoformat()] = last_fetched
+            logger.debug(
+                f"  Date {current.isoformat()}: future date, reusing roster from {today.isoformat()} ({len(last_fetched)} players)"
+            )
+            continue
+
         players = fetch_team_roster_for_date(league_key, team_id, current)
         all_players = []
         for entry in players:
@@ -121,6 +142,7 @@ def _collect_roster(
             # Team totals will only count active players
             all_players.append(player)
         rosters[current.isoformat()] = all_players
+        last_fetched = all_players
         logger.debug(
             f"  Date {current.isoformat()}: {len(all_players)} players fetched"
         )
@@ -198,7 +220,7 @@ def _build_optimized_player_active_dates(
             player_name = player.get("name", {}).get("full", "")
             nba_id = player_fetcher.player_id_lookup(player_name)
             if nba_id:
-                cached_eligibility = boxscore_cache.load_player_eligibility(nba_id)
+                cached_eligibility = boxscore_cache.load_player_eligibility(nba_id, season)
                 if cached_eligibility:
                     eligible_positions = cached_eligibility
                     logger.debug(f"Loaded cached eligibility for {player_name}: {eligible_positions}")
@@ -1961,8 +1983,8 @@ def project_matchup(
             "Box score cache is empty. Please run /refresh first to build the cache."
         )
 
-    # Get current season from cache or default
-    season = metadata.get("season", "2025-26")
+    # Get current season from cache or fall back to date-derived value
+    season = metadata.get("season") or _current_season()
 
     # Check if season stats have been computed
     stats_dir = boxscore_cache.get_cache_dir() / "season_stats" / season
@@ -2108,8 +2130,8 @@ def project_league_matchups(
                 "Box score cache is empty. Please run /refresh first to build the cache."
             )
 
-        # Get current season from cache or default
-        season = metadata.get("season", "2025-26")
+        # Get current season from cache or fall back to date-derived value
+        season = metadata.get("season") or _current_season()
 
         # Check if season stats have been computed
         stats_dir = boxscore_cache.get_cache_dir() / "season_stats" / season
@@ -2119,7 +2141,7 @@ def project_league_matchups(
             )
     else:
         # For summary only, we don't need cache data
-        season = "2025-26"  # Default season
+        season = _current_season()
 
     if anchor_team_key is None:
         anchor_team_key = fetch_user_team_key(league_key)

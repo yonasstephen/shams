@@ -17,6 +17,11 @@ pytest = "*"
 pytest-mock = "*"
 pylint = "*"
 pytest-cov = "*"
+# Backend deps needed for linting backend/ with root pipenv
+fastapi = "*"
+pydantic = "*"
+pydantic-settings = "*"
+itsdangerous = "*"
 
 [requires]
 python_version = "3.11"

@@ -172,8 +172,9 @@ class TokenRefreshQueryWrapper:
                         raise YahooAuthError(
                             f"Token refresh failed: {str(retry_exc)}"
                         ) from retry_exc
-                # If not a token error or retry already attempted, re-raise as YahooAuthError
-                raise YahooAuthError(str(exc)) from exc
+                # Not a token/auth error — re-raise as the original Yahoo exception
+                # so callers receive a 500-level error rather than a 401 logout
+                raise
 
         return wrapper
 

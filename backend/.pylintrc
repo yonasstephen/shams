@@ -1,0 +1,48 @@
+# Backend-specific pylint config — extends the root .pylintrc
+# Adds project root to sys.path so 'tools.*' imports resolve when linting from backend/
+[MASTER]
+init-hook='import sys, os; root = os.path.dirname(os.path.dirname(os.path.abspath("."))); sys.path.insert(0, root); sys.path.insert(0, os.path.dirname(os.path.abspath(".")))'
+jobs=4
+persistent=yes
+load-plugins=
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-function-docstring,
+    missing-class-docstring,
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-locals,
+    too-many-branches,
+    too-many-statements,
+    too-many-instance-attributes,
+    fixme,
+    broad-except,
+    line-too-long,
+    invalid-name
+
+[REPORTS]
+output-format=colorized
+reports=no
+
+[BASIC]
+good-names=i,j,k,ex,_,id,db,app,f,e
+
+[FORMAT]
+max-line-length=120
+max-module-lines=1000
+
+[DESIGN]
+max-args=10
+max-locals=25
+max-returns=6
+max-branches=20
+max-statements=50
+max-attributes=15
+
+[IMPORTS]
+deprecated-modules=optparse,tkinter.tix
+
+[EXCEPTIONS]
+overgeneral-exceptions=builtins.Exception

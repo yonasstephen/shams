@@ -250,7 +250,9 @@ def get_cache_status():
     try:
         cache_start, cache_end = boxscore_cache.get_cached_date_range()
         metadata = boxscore_cache.load_metadata()
-        season = metadata.get("season", "")
+        _today = datetime.now()
+        _year = _today.year if _today.month >= 10 else _today.year - 1
+        season = metadata.get("season") or f"{_year}-{str(_year + 1)[-2:]}"
 
         # If metadata doesn't have date range, try to compute from files
         if not cache_end:

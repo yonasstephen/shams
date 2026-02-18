@@ -1,4 +1,7 @@
 [MASTER]
+# Add project root to sys.path so 'tools.*' imports resolve when linting from root
+init-hook='import sys, os; sys.path.insert(0, os.getcwd())'
+
 # Use multiple processes to speed up Pylint
 jobs=4
 

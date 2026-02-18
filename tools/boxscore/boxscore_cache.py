@@ -295,6 +295,8 @@ def load_player_games(player_id: int, season: str) -> Optional[dict]:
     Returns:
         Player data dictionary or None if not found
     """
+    if not season:
+        return None
     players_dir = _get_players_dir(season)
 
     # Find player file (format: <id>_Name.json)
