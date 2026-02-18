@@ -79,7 +79,7 @@ def get_matchup_projection(
             detail="Authentication expired. Please refresh the page to re-authenticate.",
         )
     except Exception as e:
-        logger.error("Failed to fetch matchup projection: %s", e)
+        logger.exception("Failed to fetch matchup projection: %s", e)
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch matchup projection: {str(e)}"
         )

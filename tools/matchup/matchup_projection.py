@@ -599,8 +599,7 @@ def _project_player_stats(
         return projected
     else:
         # Compute stats using compute_player_stats for other modes
-        # Use season start as cutoff (estimate from season string)
-        season_start = date(2024, 10, 1)  # NBA season typically starts in October
+        season_start = schedule_fetcher.get_season_start_date(season)
         today = date.today()
 
         # Compute per-game averages using selected mode
@@ -610,6 +609,7 @@ def _project_player_stats(
             season_start=season_start,
             today=today,
             agg_mode="avg",  # Always get per-game averages for projection
+            season=season,
         )
 
         if not player_stats:
@@ -1091,7 +1091,7 @@ def _aggregate_current_week_player_contributions(
 
         # Fetch only games that have actually been played (from week_start up to and including today)
         games_this_week = player_fetcher.fetch_player_stats_from_cache(
-            nba_id, week_start, fetch_end
+            nba_id, week_start, fetch_end, _season
         )
 
         # Debug: Check if player has games but no active dates (indicating they're in IL/BN all week)
@@ -1554,7 +1554,7 @@ def _aggregate_projected_contributions(
                 player_shooting[player_key] = {}
         else:
             # Compute shooting stats using the selected mode
-            season_start = date(2024, 10, 1)
+            season_start = schedule_fetcher.get_season_start_date(season)
             today = date.today()
             player_stats = compute_player_stats(
                 player_id=nba_id,
@@ -1562,6 +1562,7 @@ def _aggregate_projected_contributions(
                 season_start=season_start,
                 today=today,
                 agg_mode="avg",
+                season=season,
             )
 
             if player_stats:
