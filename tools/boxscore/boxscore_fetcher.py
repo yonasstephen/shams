@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
 from typing import Dict, List, Optional
 
@@ -285,6 +286,7 @@ def fetch_and_cache_date_range(
     date_game_ids: Dict[str, List[str]],
     season: str = "2025-26",
     game_times: Optional[Dict[str, str]] = None,
+    game_matchups: Optional[Dict[str, str]] = None,
 ) -> tuple[int, List[Dict]]:
     """Fetch and cache box scores for a date range.
 
@@ -294,11 +296,11 @@ def fetch_and_cache_date_range(
         date_game_ids: Mapping of dates (YYYY-MM-DD) to game IDs from schedule.
         season: Season (e.g., "2025-26")
         game_times: Optional mapping of game IDs to start times (ISO format in Eastern Time)
+        game_matchups: Optional mapping of game IDs to matchup strings (e.g., "LAL @ GSW")
 
     Returns:
         Tuple of (number of games cached, list of failed games for logging)
     """
-    import time
     from datetime import datetime
 
     import pytz
@@ -308,10 +310,7 @@ def fetch_and_cache_date_range(
     current_date = start
     last_date_with_data = None  # Track the actual last date with boxscore data
 
-    # Rate limiting: configurable via NBA_API_REQUESTS_PER_SECOND env var (default: 2.0)
-    requests_per_second = float(os.getenv("NBA_API_REQUESTS_PER_SECOND", "2.0"))
-    min_request_interval = 1.0 / requests_per_second if requests_per_second > 0 else 0
-    last_request_time = None
+    max_workers = int(os.getenv("NBA_API_MAX_WORKERS", "5"))
 
     # Helper function to check if a game has started
     def has_game_started(game_id: str) -> bool:
@@ -375,85 +374,88 @@ def fetch_and_cache_date_range(
             current_date += timedelta(days=1)
             continue
 
-        # Fetch and cache each game
-        games_with_stats = 0
+        # Partition games: filter by type and started status
+        games_to_fetch = []
         games_not_started = 0
         for game_id in game_ids:
+            # Skip non-regular-season and non-playoff games (e.g. preseason=001, All-Star=003)
+            # Only fetch regular season (002) and playoff (004) games
+            game_type = game_id[2:3] if len(game_id) >= 3 else ""
+            if game_type not in ("2", "4"):
+                continue
+
             # OPTIMIZATION: Check if the game has started before making API call
-            # This uses pre-fetched schedule data to avoid unnecessary API calls
             if not has_game_started(game_id):
-                # Game is scheduled in the future - skip API call entirely
-                # These are NOT errors, just games that haven't happened yet
                 games_not_started += 1
                 continue
 
-            # RATE LIMITING: Ensure we don't exceed the configured requests per second
-            if last_request_time is not None and min_request_interval > 0:
-                elapsed = time.time() - last_request_time
-                if elapsed < min_request_interval:
-                    sleep_time = min_request_interval - elapsed
-                    time.sleep(sleep_time)
+            games_to_fetch.append(game_id)
 
-            # Record request time before making the call
-            last_request_time = time.time()
+        # Emit per-date status before parallel fetch
+        if _progress_display and games_to_fetch:
+            labels = [
+                game_matchups[gid] if game_matchups and gid in game_matchups else f"game #{gid[-4:]}"
+                for gid in games_to_fetch
+            ]
+            label_str = ", ".join(labels) if len(labels) <= 3 else f"{len(labels)} games"
+            _progress_display.update_status(f"Fetching {label_str} ({date_str})...")
 
-            # Game should have started - fetch the box score
-            game_data, error_info = fetch_box_score(game_id, game_date=date_str)
+        # Fetch all games for this date in parallel
+        games_with_stats = 0
 
-            if game_data and game_data.get("box_score"):
-                # Successfully got game data
-                boxscore_cache.save_game(game_id, season, date_str, game_data)
-                total_games += 1
-                games_with_stats += 1
+        def _fetch_game(gid):
+            """Fetch a single game and return (game_id, game_data, error_info)."""
+            return gid, fetch_box_score(gid, game_date=date_str)
 
-                # Update last date with actual boxscore data
-                if last_date_with_data is None or current_date > last_date_with_data:
-                    last_date_with_data = current_date
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(_fetch_game, gid): gid for gid in games_to_fetch}
+            for future in as_completed(futures):
+                game_id, (game_data, error_info) = future.result()
 
-                # Update player indexes incrementally
-                box_score = game_data.get("box_score", {})
-                home_score = game_data.get("home_score", 0)
-                away_score = game_data.get("away_score", 0)
-                for player_id_str, player_stats in box_score.items():
-                    player_id = int(player_id_str)
-                    player_name = player_stats.get("PLAYER_NAME", f"Player_{player_id}")
+                if game_data and game_data.get("box_score"):
+                    boxscore_cache.save_game(game_id, season, date_str, game_data)
+                    total_games += 1
+                    games_with_stats += 1
 
-                    game_entry = {
-                        "date": date_str,
-                        "game_id": game_id,
-                        "home_score": home_score,
-                        "away_score": away_score,
-                        **{
-                            k: v
-                            for k, v in player_stats.items()
-                            if k not in ["PLAYER_NAME", "PLAYER_ID"]
-                        },
-                    }
+                    if last_date_with_data is None or current_date > last_date_with_data:
+                        last_date_with_data = current_date
 
-                    boxscore_cache.update_player_index(
-                        player_id, player_name, game_entry, season
-                    )
-            else:
-                # ERROR: Game should have started but has no stats
-                # This IS an error that should be tracked (e.g., postponed game, API issues)
-                # Use the actual error information returned from fetch_box_score
-
-                # Extract error type and message from error_info
-                if error_info:
-                    reason = error_info.get("type", "unknown_error")
-                    error_message = error_info.get("message", "Unknown error")
+                    box_score = game_data.get("box_score", {})
+                    home_score = game_data.get("home_score", 0)
+                    away_score = game_data.get("away_score", 0)
+                    for player_id_str, player_stats in box_score.items():
+                        player_id = int(player_id_str)
+                        player_name = player_stats.get("PLAYER_NAME", f"Player_{player_id}")
+                        game_entry = {
+                            "date": date_str,
+                            "game_id": game_id,
+                            "home_score": home_score,
+                            "away_score": away_score,
+                            **{
+                                k: v
+                                for k, v in player_stats.items()
+                                if k not in ["PLAYER_NAME", "PLAYER_ID"]
+                            },
+                        }
+                        boxscore_cache.update_player_index(
+                            player_id, player_name, game_entry, season
+                        )
                 else:
-                    reason = "no_data"
-                    error_message = "No data returned"
+                    if error_info:
+                        reason = error_info.get("type", "unknown_error")
+                        error_message = error_info.get("message", "Unknown error")
+                    else:
+                        reason = "no_data"
+                        error_message = "No data returned"
 
-                failed_games.append(
-                    {
-                        "game_id": game_id,
-                        "date": date_str,
-                        "reason": reason,
-                        "error_message": error_message,
-                    }
-                )
+                    failed_games.append(
+                        {
+                            "game_id": game_id,
+                            "date": date_str,
+                            "reason": reason,
+                            "error_message": error_message,
+                        }
+                    )
 
         # End timing for this date
         if _timing_tracker:

@@ -622,7 +622,8 @@ def run_retry_operations(
     
     Retries missing games detected by comparing schedule vs cache.
     """
-    import time
+    import os
+    from concurrent.futures import ThreadPoolExecutor, as_completed
 
     from nba_api.stats.library.parameters import SeasonAll
 
@@ -671,100 +672,136 @@ def run_retry_operations(
             sse_display.emit_status(f"Retrying {total} games...")
         )
 
-        # Retry each game
+        # Build a lookup for matchup strings
+        def _matchup_str(gi):
+            home = gi.get("home_team", "")
+            away = gi.get("away_team", "")
+            return f"{away} @ {home}" if home and away else gi.get("game_id", "")
+
+        # Worker: fetch one game, return result dict (no queue/cache writes here)
+        def fetch_one(gi):
+            gid = gi.get("game_id")
+            gdate = gi.get("date")
+            gseason = gi.get("season", season)
+            matchup = _matchup_str(gi)
+            if not gid or not gdate:
+                return None
+            game_data, error_info = boxscore_fetcher.fetch_box_score(gid, game_date=gdate)
+            return {
+                "game_id": gid,
+                "game_date": gdate,
+                "game_season": gseason,
+                "matchup": matchup,
+                "game_data": game_data,
+                "error_info": error_info,
+            }
+
+        max_workers = int(os.getenv("NBA_API_MAX_WORKERS", "5"))
+
+        # Emit initial progress for all games
         for idx, game_info in enumerate(games_to_retry):
-            game_id = game_info.get("game_id")
-            game_date = game_info.get("date")
-            game_season = game_info.get("season", season)
-
-            if not game_id or not game_date:
-                continue
-
-            # Build matchup string for display
-            home_team = game_info.get("home_team", "")
-            away_team = game_info.get("away_team", "")
-            matchup = f"{away_team} @ {home_team}" if home_team and away_team else game_id
-
-            # Emit progress event
             event_queue.put({
                 "type": "progress",
                 "current": idx + 1,
                 "total": total,
-                "game_id": game_id,
-                "matchup": matchup,
-                "date": game_date,
-                "message": f"Fetching {matchup} ({game_date})",
+                "game_id": game_info.get("game_id"),
+                "matchup": _matchup_str(game_info),
+                "date": game_info.get("date"),
+                "message": f"Queued {_matchup_str(game_info)} ({game_info.get('date')})",
             })
 
-            # Rate limiting
-            if idx > 0:
-                time.sleep(0.5)
+        # Fetch all games in parallel
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_info = {
+                executor.submit(fetch_one, gi): gi for gi in games_to_retry
+            }
+            for future in as_completed(future_to_info):
+                result = future.result()
+                if result is None:
+                    continue
 
-            # Try to fetch the game
-            game_data, error_info = boxscore_fetcher.fetch_box_score(
-                game_id, game_date=game_date
-            )
+                game_id = result["game_id"]
+                game_date = result["game_date"]
+                game_season = result["game_season"]
+                matchup = result["matchup"]
+                game_data = result["game_data"]
+                error_info = result["error_info"]
 
-            if game_data and game_data.get("box_score"):
-                # Success! Save the game
-                boxscore_cache.save_game(game_id, game_season, game_date, game_data)
+                if game_data and game_data.get("box_score"):
+                    # Success! Save the game and update indexes
+                    boxscore_cache.save_game(game_id, game_season, game_date, game_data)
 
-                # Update player indexes
-                box_score = game_data.get("box_score", {})
-                for player_id_str, player_stats in box_score.items():
-                    player_id = int(player_id_str)
-                    player_name = player_stats.get("PLAYER_NAME", f"Player_{player_id}")
+                    box_score = game_data.get("box_score", {})
+                    for player_id_str, player_stats in box_score.items():
+                        player_id = int(player_id_str)
+                        player_name = player_stats.get("PLAYER_NAME", f"Player_{player_id}")
+                        game_entry = {
+                            "date": game_date,
+                            "game_id": game_id,
+                            **{
+                                k: v
+                                for k, v in player_stats.items()
+                                if k not in ["PLAYER_NAME", "PLAYER_ID"]
+                            },
+                        }
+                        boxscore_cache.update_player_index(
+                            player_id, player_name, game_entry, game_season
+                        )
 
-                    game_entry = {
-                        "date": game_date,
+                    successful.append(game_id)
+                    event_queue.put({
+                        "type": "game_complete",
                         "game_id": game_id,
-                        **{
-                            k: v
-                            for k, v in player_stats.items()
-                            if k not in ["PLAYER_NAME", "PLAYER_ID"]
-                        },
-                    }
-
-                    boxscore_cache.update_player_index(
-                        player_id, player_name, game_entry, game_season
-                    )
-
-                successful.append(game_id)
-
-                # Emit success event
-                event_queue.put({
-                    "type": "game_complete",
-                    "game_id": game_id,
-                    "matchup": matchup,
-                    "date": game_date,
-                    "status": "success",
-                    "message": f"Successfully fetched {matchup}",
-                })
-            else:
-                # Failed to fetch - game is still missing
-                if error_info:
-                    reason = error_info.get("type", "unknown_error")
-                    error_message = error_info.get("message", "Unknown error")
+                        "matchup": matchup,
+                        "date": game_date,
+                        "status": "success",
+                        "message": f"Successfully fetched {matchup}",
+                    })
                 else:
-                    reason = "no_data"
-                    error_message = "No data returned"
+                    if error_info:
+                        reason = error_info.get("type", "unknown_error")
+                        error_message = error_info.get("message", "Unknown error")
+                    else:
+                        reason = "no_data"
+                        error_message = "No data returned"
 
-                still_missing.append(game_id)
-
-                # Emit failure event
-                event_queue.put({
-                    "type": "game_complete",
-                    "game_id": game_id,
-                    "matchup": matchup,
-                    "date": game_date,
-                    "status": "failed",
-                    "reason": reason,
-                    "message": f"Failed: {error_message}",
-                })
+                    still_missing.append(game_id)
+                    event_queue.put({
+                        "type": "game_complete",
+                        "game_id": game_id,
+                        "matchup": matchup,
+                        "date": game_date,
+                        "status": "failed",
+                        "reason": reason,
+                        "message": f"Failed: {error_message}",
+                    })
 
         # Rebuild indexes and stats if any games were successfully fetched
         if successful:
             from tools.schedule import schedule_cache
+
+            # Update metadata date_range so cache-status reflects the newly fetched games
+            metadata = boxscore_cache.load_metadata(season)
+            from datetime import datetime as _dt
+            games_dir = boxscore_cache.get_cache_dir() / "games" / season
+            if games_dir.exists():
+                # Files are named YYYYMMDD_gameid.json; extract date from prefix
+                raw_dates = sorted(
+                    f.stem.split("_")[0]
+                    for f in games_dir.glob("*.json")
+                    if "_" in f.stem
+                )
+                if raw_dates:
+                    def _fmt(d):
+                        return f"{d[:4]}-{d[4:6]}-{d[6:]}"
+                    new_start = _fmt(raw_dates[0])
+                    new_end = _fmt(raw_dates[-1])
+                    existing_start = metadata.get("date_range", {}).get("start")
+                    metadata.setdefault("date_range", {})
+                    metadata["date_range"]["start"] = min(new_start, existing_start) if existing_start else new_start
+                    metadata["date_range"]["end"] = new_end
+                    metadata["last_updated"] = _dt.now().isoformat()
+                    boxscore_cache.save_metadata(metadata, season)
 
             # Rebuild player indexes
             event_queue.put(sse_display.emit_status("Rebuilding player indexes..."))

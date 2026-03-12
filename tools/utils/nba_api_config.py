@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 # Configure NBA API timeout globally
 # The nba_api library uses requests under the hood
 # We'll monkey-patch the timeout setting
@@ -33,5 +35,6 @@ def configure_nba_api_timeout(timeout: int = 60) -> None:
         pass
 
 
-# Configure on import with 90 second timeout for slow NBA API
-configure_nba_api_timeout(timeout=90)
+# Configure on import; default 15s — if NBA API doesn't respond in 15s it won't at all
+_timeout = int(os.getenv("NBA_API_TIMEOUT", "15"))
+configure_nba_api_timeout(timeout=_timeout)

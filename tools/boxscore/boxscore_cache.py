@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import threading
 from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+_player_index_lock = threading.Lock()
 
 
 def get_cache_dir() -> Path:
@@ -444,6 +447,14 @@ def update_player_index(
         game_data: Game stats for this player
         season: Season (e.g., "2025-26")
     """
+    with _player_index_lock:
+        _update_player_index_unsafe(player_id, player_name, game_data, season)
+
+
+def _update_player_index_unsafe(
+    player_id: int, player_name: str, game_data: dict, season: str
+) -> None:
+    """Inner implementation of update_player_index (caller must hold _player_index_lock)."""
     # Load existing player data for this season
     player_data = load_player_games(player_id, season)
 
@@ -1022,6 +1033,11 @@ def detect_missing_games(
 
         for game in scheduled_games:
             game_id = str(game.get("game_id", ""))
+
+            # Skip non-regular-season / non-playoff games (preseason=001, All-Star=003)
+            game_type = game_id[2:3] if len(game_id) >= 3 else ""
+            if game_type not in ("2", "4"):
+                continue
 
             # Skip postponed games - they will never have box scores
             if game.get("postponed_status") == "Y":

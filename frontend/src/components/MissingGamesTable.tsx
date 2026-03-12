@@ -50,9 +50,10 @@ interface RetryProgressEvent {
 
 interface MissingGamesTableProps {
   onRefresh?: () => void;
+  disabled?: boolean; // When true, disables all retry buttons
 }
 
-export function MissingGamesTable({ onRefresh }: MissingGamesTableProps) {
+export function MissingGamesTable({ onRefresh, disabled = false }: MissingGamesTableProps) {
   // Missing games state
   const [missingByDate, setMissingByDate] = useState<Record<string, MissingDateInfo>>({});
   const [totalMissing, setTotalMissing] = useState(0);
@@ -168,22 +169,30 @@ export function MissingGamesTable({ onRefresh }: MissingGamesTableProps) {
               message: data.message || '',
             }));
             break;
-            
+
           case 'progress':
-            setRetryProgress({
-              current: data.current || 0,
-              total: data.total || 0,
-              message: data.message || `Processing ${data.matchup}...`,
-            });
+            // Only capture total from progress events — current is tracked via game_complete
+            setRetryProgress(prev => ({
+              current: prev?.current ?? 0,
+              total: data.total || prev?.total || 0,
+              message: `Fetching ${data.total} games...`,
+            }));
             break;
-            
+
           case 'game_complete':
             if (data.game_id && data.status) {
-              setRetryResults(prev => [...prev, {
+              const result = {
                 game_id: data.game_id!,
                 status: data.status!,
                 message: data.message || '',
-              }]);
+              };
+              setRetryResults(prev => [...prev, result]);
+              // Advance the progress counter on each completed game
+              setRetryProgress(prev => prev ? {
+                ...prev,
+                current: prev.current + 1,
+                message: data.message || prev.message,
+              } : prev);
             }
             break;
             
@@ -287,7 +296,7 @@ export function MissingGamesTable({ onRefresh }: MissingGamesTableProps) {
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={fetchMissingGames}
-            disabled={loading}
+            disabled={loading || disabled}
             className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
             title="Refresh the list"
           >
@@ -298,8 +307,9 @@ export function MissingGamesTable({ onRefresh }: MissingGamesTableProps) {
           </button>
           <button
             onClick={retryAllMissing}
-            disabled={retrying || totalMissing === 0}
+            disabled={retrying || totalMissing === 0 || disabled}
             className="px-3 py-1.5 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={disabled ? 'Another refresh is in progress' : undefined}
           >
             {retrying ? 'Retrying...' : `Retry All (${totalMissing})`}
           </button>
@@ -396,8 +406,9 @@ export function MissingGamesTable({ onRefresh }: MissingGamesTableProps) {
                     </div>
                     <button
                       onClick={() => retryGame(game.game_id)}
-                      disabled={retryingGameId === game.game_id || retrying}
+                      disabled={retryingGameId === game.game_id || retrying || disabled}
                       className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={disabled ? 'Another refresh is in progress' : undefined}
                     >
                       {retryingGameId === game.game_id ? 'Retrying...' : 'Retry'}
                     </button>

@@ -27,6 +27,8 @@ export function Home() {
   const [selectedPlayer, setSelectedPlayer] = useState<{ id: number; name: string } | null>(null);
   const [missingGamesCount, setMissingGamesCount] = useState<number>(0);
   const [isRefreshingMissing, setIsRefreshingMissing] = useState(false);
+  const [refreshStatusMessage, setRefreshStatusMessage] = useState<string | null>(null);
+  const [refreshCompletedSteps, setRefreshCompletedSteps] = useState<string[]>([]);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Increment to trigger RefreshPanel sync
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -134,6 +136,8 @@ export function Home() {
   const handleRefreshMissing = () => {
     setIsRefreshingMissing(true);
     setRefreshError(null);
+    setRefreshStatusMessage(null);
+    setRefreshCompletedSteps([]);
 
     // Build query parameters for smart refresh (no date range = fetch missing games)
     const params = new URLSearchParams({
@@ -154,10 +158,15 @@ export function Home() {
       try {
         const data = JSON.parse(event.data);
 
-        if (data.type === 'done') {
+        if (data.type === 'status') {
+          setRefreshStatusMessage(data.message);
+        } else if (data.type === 'complete') {
+          setRefreshCompletedSteps(prev => [...prev, data.message]);
+        } else if (data.type === 'done') {
           eventSource.close();
           eventSourceRef.current = null;
           setIsRefreshingMissing(false);
+          setRefreshStatusMessage(null);
           setMissingGamesCount(0); // Reset count after successful refresh
           setRefreshTrigger(prev => prev + 1); // Trigger RefreshPanel to sync
           
@@ -187,6 +196,7 @@ export function Home() {
         } else if (data.type === 'error') {
           setRefreshError(data.message);
           setIsRefreshingMissing(false);
+          setRefreshStatusMessage(null);
           eventSource.close();
           eventSourceRef.current = null;
         }
@@ -198,6 +208,7 @@ export function Home() {
     eventSource.onerror = () => {
       setRefreshError('Connection error. Please try again.');
       setIsRefreshingMissing(false);
+      setRefreshStatusMessage(null);
       eventSource.close();
       eventSourceRef.current = null;
     };
@@ -251,39 +262,59 @@ export function Home() {
           </div>
         ) : defaultLeagueKey ? (
           <div className="mb-8">
-            {/* Smart Refresh Banner - shows when there are missing games */}
-            {missingGamesCount > 0 && !isLoadingGames && (
+            {/* Smart Refresh Banner - shows when there are missing games or refresh is in progress */}
+            {(missingGamesCount > 0 || isRefreshingMissing) && !isLoadingGames && (
               <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                    </svg>
-                    <div>
-                      <p className="text-blue-800 font-medium text-sm">{missingGamesCount} missing game{missingGamesCount !== 1 ? 's' : ''} available</p>
-                      <p className="text-blue-700 text-xs mt-0.5">Box scores are available but haven't been fetched yet</p>
+                {isRefreshingMissing ? (
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 flex-shrink-0"></div>
+                      <p className="text-blue-800 font-medium text-sm">
+                        {refreshStatusMessage || 'Starting refresh...'}
+                      </p>
                     </div>
-                  </div>
-                  <button
-                    onClick={handleRefreshMissing}
-                    disabled={isRefreshingMissing}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    {isRefreshingMissing ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Refreshing...
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Smart Refresh
-                      </>
+                    <div className="w-full bg-blue-200 rounded-full h-1.5 overflow-hidden mb-2">
+                      <div className="h-full bg-blue-600 rounded-full" style={{ width: '40%', animation: 'slide 1.5s ease-in-out infinite' }}></div>
+                    </div>
+                    <style>{`
+                      @keyframes slide {
+                        0% { transform: translateX(-100%) scaleX(0.5); }
+                        50% { transform: translateX(150%) scaleX(1.2); }
+                        100% { transform: translateX(300%) scaleX(0.5); }
+                      }
+                    `}</style>
+                    {refreshCompletedSteps.length > 0 && (
+                      <div className="max-h-24 overflow-y-auto space-y-0.5">
+                        {refreshCompletedSteps.slice(-6).map((step, idx) => (
+                          <div key={idx} className="text-xs text-blue-700">
+                            ✓ {step}
+                          </div>
+                        ))}
+                      </div>
                     )}
-                  </button>
-                </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-3">
+                      <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="text-blue-800 font-medium text-sm">{missingGamesCount} missing game{missingGamesCount !== 1 ? 's' : ''} available</p>
+                        <p className="text-blue-700 text-xs mt-0.5">Box scores are available but haven't been fetched yet</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleRefreshMissing}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Smart Refresh
+                    </button>
+                  </div>
+                )}
                 {refreshError && (
                   <p className="text-red-600 text-xs mt-2">{refreshError}</p>
                 )}
@@ -331,7 +362,7 @@ export function Home() {
         )}
 
         {/* Data Refresh Panel */}
-        <RefreshPanel leagueKey={defaultLeagueKey} refreshTrigger={refreshTrigger} />
+        <RefreshPanel leagueKey={defaultLeagueKey} refreshTrigger={refreshTrigger} externalRefreshing={isRefreshingMissing} onMissingCountChange={setMissingGamesCount} />
 
         {/* Game Type Settings */}
         <GameTypeSettings leagueKey={defaultLeagueKey} />

@@ -34,6 +34,22 @@ def set_timing_tracker(tracker: Optional[TimingTracker]) -> None:
     _timing_tracker = tracker
 
 
+def _build_game_matchups(season: str) -> Dict[str, str]:
+    """Build a mapping of game_id -> matchup string (e.g. 'LAL @ GSW') from the cached schedule."""
+    full_schedule = schedule_cache.load_full_schedule(season)
+    if not full_schedule:
+        return {}
+    result: Dict[str, str] = {}
+    for games in full_schedule.get("date_games", {}).values():
+        for game in games:
+            gid = game.get("game_id", "")
+            home = game.get("home_team_tricode", "")
+            away = game.get("away_team_tricode", "")
+            if gid and home and away:
+                result[gid] = f"{away} @ {home}"
+    return result
+
+
 def _detect_active_season(_current_season: str) -> str:
     """Detect which season should be used based on the current date.
 
@@ -129,6 +145,7 @@ def refresh_boxscores(
     schedule_refresh.set_progress_display(_progress_display)
     schedule_refresh.set_timing_tracker(_timing_tracker)
     date_game_ids, game_times = schedule_refresh.cache_all_team_schedules(season)
+    game_matchups = _build_game_matchups(season)
 
     # Pass progress display and timing tracker to fetcher
     boxscore_fetcher.set_progress_display(_progress_display)
@@ -139,7 +156,7 @@ def refresh_boxscores(
         _timing_tracker.start("boxscore_fetch")
 
     games_fetched, failed_games = boxscore_fetcher.fetch_and_cache_date_range(
-        start_date, end_date, date_game_ids, season, game_times
+        start_date, end_date, date_game_ids, season, game_times, game_matchups
     )
 
     # End timing boxscore fetch
@@ -234,6 +251,7 @@ def initial_build(season_start: Optional[date] = None, season: Optional[str] = N
     schedule_refresh.set_progress_display(_progress_display)
     schedule_refresh.set_timing_tracker(_timing_tracker)
     date_game_ids, game_times = schedule_refresh.cache_all_team_schedules(season)
+    game_matchups = _build_game_matchups(season)
 
     # Pass progress display and timing tracker to fetcher
     boxscore_fetcher.set_progress_display(_progress_display)
@@ -244,7 +262,7 @@ def initial_build(season_start: Optional[date] = None, season: Optional[str] = N
         _timing_tracker.start("boxscore_fetch")
 
     games_fetched, failed_games = boxscore_fetcher.fetch_and_cache_date_range(
-        season_start, today, date_game_ids, season, game_times
+        season_start, today, date_game_ids, season, game_times, game_matchups
     )
 
     # End timing boxscore fetch
@@ -493,6 +511,7 @@ def smart_refresh(season: Optional[str] = None) -> Dict:
     schedule_refresh.set_progress_display(_progress_display)
     schedule_refresh.set_timing_tracker(_timing_tracker)
     date_game_ids, game_times = schedule_refresh.cache_all_team_schedules(season)
+    game_matchups = _build_game_matchups(season)
 
     # Pass progress display and timing tracker to fetcher
     boxscore_fetcher.set_progress_display(_progress_display)
@@ -503,7 +522,7 @@ def smart_refresh(season: Optional[str] = None) -> Dict:
         _timing_tracker.start("boxscore_fetch")
 
     games_fetched, failed_games = boxscore_fetcher.fetch_and_cache_date_range(
-        start_date, today, date_game_ids, season, game_times
+        start_date, today, date_game_ids, season, game_times, game_matchups
     )
 
     # End timing boxscore fetch

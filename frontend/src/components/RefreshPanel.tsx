@@ -22,6 +22,8 @@ const API_BASE_URL = isPlaceholder
 interface RefreshPanelProps {
   leagueKey?: string | null;
   refreshTrigger?: number; // Increment to trigger a refetch of cache status and missing games
+  externalRefreshing?: boolean; // When true, disables refresh controls (e.g. Smart Refresh in progress)
+  onMissingCountChange?: (count: number) => void; // Notify parent when missing games count changes
 }
 
 interface CacheStatus {
@@ -39,7 +41,7 @@ interface SeasonInfo {
   cached_season: string | null;
 }
 
-export function RefreshPanel({ leagueKey, refreshTrigger }: RefreshPanelProps) {
+export function RefreshPanel({ leagueKey, refreshTrigger, externalRefreshing = false, onMissingCountChange }: RefreshPanelProps) {
   const navigate = useNavigate();
   const { isLoading: isLeagueLoading } = useLeague();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -157,7 +159,9 @@ export function RefreshPanel({ leagueKey, refreshTrigger }: RefreshPanelProps) {
         const text = await response.text();
         if (text) {
           const data = JSON.parse(text);
-          setMissingGamesCount(data.total_missing || 0);
+          const count = data.total_missing || 0;
+          setMissingGamesCount(count);
+          onMissingCountChange?.(count);
         }
       } else if (response.status === 401) {
         // User not authenticated - expected if not logged in
@@ -629,14 +633,15 @@ export function RefreshPanel({ leagueKey, refreshTrigger }: RefreshPanelProps) {
           <div>
             <button
               onClick={handleRefresh}
-              disabled={isRefreshing}
+              disabled={isRefreshing || externalRefreshing}
               className={`w-full md:w-auto px-6 py-2.5 rounded-xl font-medium transition-all text-sm md:text-base ${
-                isRefreshing
+                isRefreshing || externalRefreshing
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-neutral-900 text-white hover:bg-neutral-800 hover:shadow-lg'
               }`}
+              title={externalRefreshing ? 'Smart Refresh in progress' : undefined}
             >
-              {isRefreshing ? 'Refreshing...' : 'Start Refresh'}
+              {externalRefreshing ? 'Smart Refresh in progress...' : isRefreshing ? 'Refreshing...' : 'Start Refresh'}
             </button>
           </div>
           
@@ -709,10 +714,13 @@ export function RefreshPanel({ leagueKey, refreshTrigger }: RefreshPanelProps) {
           
           {showMissingGames && (
             <div className="mt-4">
-              <MissingGamesTable onRefresh={() => {
-                fetchMissingGamesCount(true);
-                fetchCacheStatus(true);
-              }} />
+              <MissingGamesTable
+                onRefresh={() => {
+                  fetchMissingGamesCount(true);
+                  fetchCacheStatus(true);
+                }}
+                disabled={externalRefreshing || isRefreshing}
+              />
             </div>
           )}
         </div>

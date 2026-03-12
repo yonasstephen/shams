@@ -247,11 +247,22 @@ def get_cache_status():
         Cache status with last date, game count, and season
     """
     try:
-        _, cache_end = boxscore_cache.get_cached_date_range()
-        metadata = boxscore_cache.load_metadata()
+        # Detect season first from the most recent season-specific metadata file,
+        # then use it for all subsequent lookups so we read the right metadata file.
         _today = datetime.now()
         _year = _today.year if _today.month >= 10 else _today.year - 1
-        season = metadata.get("season") or f"{_year}-{str(_year + 1)[-2:]}"
+        _fallback_season = f"{_year}-{str(_year + 1)[-2:]}"
+
+        games_base_dir = boxscore_cache.get_cache_dir() / "games"
+        season_dirs = sorted(
+            [d for d in games_base_dir.iterdir() if d.is_dir()],
+            reverse=True,
+        ) if games_base_dir.exists() else []
+        detected_season = season_dirs[0].name if season_dirs else _fallback_season
+
+        metadata = boxscore_cache.load_metadata(detected_season)
+        season = metadata.get("season") or detected_season
+        _, cache_end = boxscore_cache.get_cached_date_range(season)
 
         # If metadata doesn't have date range, try to compute from files
         if not cache_end:
