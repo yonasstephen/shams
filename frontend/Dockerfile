@@ -14,6 +14,10 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Accept version as build arg and write VERSION file for Vite
+ARG APP_VERSION=0.0.0
+RUN echo "$APP_VERSION" > VERSION
+
 # Build the application
 RUN npm run build
 

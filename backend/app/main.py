@@ -21,7 +21,10 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
-app = FastAPI(title=settings.app_name, debug=settings.debug, version="1.0.0")
+VERSION_FILE = Path(__file__).parent.parent.parent / "VERSION"
+app_version = VERSION_FILE.read_text().strip() if VERSION_FILE.exists() else "0.0.0"
+
+app = FastAPI(title=settings.app_name, debug=settings.debug, version=app_version)
 
 # Configure CORS
 # In production (DEBUG=False), only allow configured frontend URL
@@ -65,7 +68,7 @@ app.include_router(boxscore.router, prefix="/api/boxscore", tags=["boxscore"])
 @app.get("/")
 async def root():
     """Root endpoint."""
-    return {"name": settings.app_name, "version": "1.0.0", "status": "running"}
+    return {"name": settings.app_name, "version": app_version, "status": "running"}
 
 
 @app.get("/health")

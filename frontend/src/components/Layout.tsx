@@ -83,6 +83,10 @@ export function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
+      <footer className="hidden md:block text-center text-xs text-gray-400 py-2">
+        v{__APP_VERSION__}
+      </footer>
+
       {/* Bottom navigation for mobile */}
       <BottomNavigation />
     </div>
