@@ -110,8 +110,8 @@ def _parse_stat_mode(mode: str) -> tuple[Optional[int], Optional[int]]:
 
 
 def compute_player_stats(
-    player_id: int, mode: str, season_start: date, today: date, agg_mode: str = "avg",
-    season: Optional[str] = None,
+    player_id: int, mode: str, season_start: date, today: date, *,
+    agg_mode: str = "avg", season: str,
 ) -> Optional[PlayerStats]:
     """Compute 9-category stats from cached box scores.
 

@@ -504,7 +504,8 @@ def get_ranked_players(
                 nba_player_id, _ = find_player_matches(full_name, limit=1)
                 if nba_player_id:
                     player_stats_obj = compute_player_stats(
-                        nba_player_id, stats_mode, season_start, today, agg_mode
+                        nba_player_id, stats_mode, season_start, today,
+                        agg_mode=agg_mode, season="2025-26"
                     )
                     player_stats = _player_stats_to_model(player_stats_obj)
             except Exception:
