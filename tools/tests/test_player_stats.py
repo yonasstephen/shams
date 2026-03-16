@@ -106,7 +106,7 @@ def test_compute_player_stats_last_game(mock_fetch):
     today = date(2024, 11, 1)
 
     stats = player_stats.compute_player_stats(
-        player_id, "last", season_start, today, agg_mode="avg"
+        player_id, "last", season_start, today, "2024-25", agg_mode="avg"
     )
 
     assert stats is not None
@@ -185,7 +185,7 @@ def test_compute_player_stats_last_n_games(mock_fetch):
     today = date(2024, 11, 1)
 
     stats = player_stats.compute_player_stats(
-        player_id, "last3", season_start, today, agg_mode="avg"
+        player_id, "last3", season_start, today, "2024-25", agg_mode="avg"
     )
 
     assert stats is not None
@@ -248,7 +248,7 @@ def test_compute_player_stats_sum_mode(mock_fetch):
     today = date(2024, 11, 1)
 
     stats = player_stats.compute_player_stats(
-        player_id, "last2", season_start, today, agg_mode="sum"
+        player_id, "last2", season_start, today, "2024-25", agg_mode="sum"
     )
 
     assert stats is not None
@@ -330,7 +330,7 @@ def test_compute_player_stats_last_n_days(mock_fetch):
 
     # Last 7 days should include games from 2024-10-29 onwards
     stats = player_stats.compute_player_stats(
-        player_id, "last7d", season_start, today, agg_mode="avg"
+        player_id, "last7d", season_start, today, "2024-25", agg_mode="avg"
     )
 
     assert stats is not None
@@ -349,7 +349,7 @@ def test_compute_player_stats_no_games(mock_fetch):
     season_start = date(2024, 10, 1)
     today = date(2024, 11, 1)
 
-    stats = player_stats.compute_player_stats(player_id, "last", season_start, today)
+    stats = player_stats.compute_player_stats(player_id, "last", season_start, today, "2024-25")
 
     assert stats is None
 
