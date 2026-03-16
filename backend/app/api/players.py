@@ -504,7 +504,7 @@ def get_ranked_players(
                 nba_player_id, _ = find_player_matches(full_name, limit=1)
                 if nba_player_id:
                     player_stats_obj = compute_player_stats(
-                        nba_player_id, stats_mode, season_start, today, agg_mode
+                        nba_player_id, stats_mode, season_start, today, agg_mode, season="2025-26"
                     )
                     player_stats = _player_stats_to_model(player_stats_obj)
             except Exception:
@@ -583,10 +583,10 @@ def get_player_stats(
         season = f"{season_start_year}-{str(season_start_year + 1)[-2:]}"
 
         # Compute stats for different periods
-        last_game_stats = compute_player_stats(player_id, "last", season_start, today)
-        last3_stats = compute_player_stats(player_id, "last3", season_start, today)
-        last7_stats = compute_player_stats(player_id, "last7", season_start, today)
-        season_stats = compute_player_stats(player_id, "season", season_start, today)
+        last_game_stats = compute_player_stats(player_id, "last", season_start, today, season=season)
+        last3_stats = compute_player_stats(player_id, "last3", season_start, today, season=season)
+        last7_stats = compute_player_stats(player_id, "last7", season_start, today, season=season)
+        season_stats = compute_player_stats(player_id, "season", season_start, today, season=season)
 
         # Get player data and games
         from tools.boxscore import boxscore_cache
