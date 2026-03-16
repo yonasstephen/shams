@@ -250,10 +250,10 @@ class PlayerCommand(Command):
         season = f"{season_start_year}-{str(season_start_year + 1)[-2:]}"
 
         # Compute stats for different time periods
-        last_game_stats = compute_player_stats(player_id, "last", season_start, today, season=season)
-        last3_stats = compute_player_stats(player_id, "last3", season_start, today, season=season)
-        last7_stats = compute_player_stats(player_id, "last7", season_start, today, season=season)
-        season_stats = compute_player_stats(player_id, "season", season_start, today, season=season)
+        last_game_stats = compute_player_stats(player_id, "last", season_start, today, season)
+        last3_stats = compute_player_stats(player_id, "last3", season_start, today, season)
+        last7_stats = compute_player_stats(player_id, "last7", season_start, today, season)
+        season_stats = compute_player_stats(player_id, "season", season_start, today, season)
 
         # Get minutes for each period by recomputing minute trends
         last_game_minutes = (

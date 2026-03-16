@@ -215,7 +215,7 @@ def _compute_waiver_trends(
                 today = date_cls.today()
                 player_stats = compute_player_stats(
                     nba_player_id, stats_mode, season_start, today,
-                    agg_mode=agg_mode, season="2025-26"
+                    "2025-26", agg_mode
                 )
 
             # Calculate average minutes
