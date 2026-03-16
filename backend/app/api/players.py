@@ -583,10 +583,10 @@ def get_player_stats(
         season = f"{season_start_year}-{str(season_start_year + 1)[-2:]}"
 
         # Compute stats for different periods
-        last_game_stats = compute_player_stats(player_id, "last", season_start, today)
-        last3_stats = compute_player_stats(player_id, "last3", season_start, today)
-        last7_stats = compute_player_stats(player_id, "last7", season_start, today)
-        season_stats = compute_player_stats(player_id, "season", season_start, today)
+        last_game_stats = compute_player_stats(player_id, "last", season_start, today, season=season)
+        last3_stats = compute_player_stats(player_id, "last3", season_start, today, season=season)
+        last7_stats = compute_player_stats(player_id, "last7", season_start, today, season=season)
+        season_stats = compute_player_stats(player_id, "season", season_start, today, season=season)
 
         # Get player data and games
         from tools.boxscore import boxscore_cache
