@@ -398,12 +398,12 @@ export function WaiverWire() {
                   type="date"
                   value={effectiveCutoff || ''}
                   onChange={(e) => updateState({ lastGameCutoff: e.target.value || null })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all text-sm"
+                  className="w-full px-3 py-2 pr-10 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all text-sm"
                 />
                 {effectiveCutoff && (
                   <button
                     onClick={() => updateState({ lastGameCutoff: null })}
-                    className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                     title="Clear filter"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
