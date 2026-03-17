@@ -1996,6 +1996,10 @@ def project_matchup(
     matchup, _ = fetch_matchup_context(league_key, team_key, week=week)
     week_start = date.fromisoformat(matchup.week_start)
     week_end = date.fromisoformat(matchup.week_end)
+    # Yahoo sometimes returns Saturday as week_end even though Sunday is still in the week.
+    # Extend to Sunday if week_end is not already a Sunday (weekday 6).
+    if week_end.weekday() != 6:
+        week_end = week_end + timedelta(days=(6 - week_end.weekday()) % 7)
     week_value = getattr(matchup, "week", None)
 
     team_a, team_b = _resolve_matchup_teams(matchup)
@@ -2177,6 +2181,9 @@ def project_league_matchups(
         week_value = getattr(matchup, "week", None)
         week_start = date.fromisoformat(getattr(matchup, "week_start"))
         week_end = date.fromisoformat(getattr(matchup, "week_end"))
+        # Yahoo sometimes returns Saturday as week_end; extend to Sunday if needed.
+        if week_end.weekday() != 6:
+            week_end = week_end + timedelta(days=(6 - week_end.weekday()) % 7)
 
         if summary_only:
             # For summary mode, just extract basic team info without expensive calculations
