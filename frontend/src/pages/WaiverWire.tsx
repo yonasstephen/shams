@@ -47,7 +47,7 @@ export function WaiverWire() {
   // Filter players by last game cutoff (client-side filtering)
   const filteredPlayers = waiverData?.players.filter(player => {
     if (!effectiveCutoff) return true; // No filter (null means explicitly cleared)
-    if (!player.last_game_date) return false; // No last game date means hasn't played
+    if (!player.last_game_date) return true; // Include players when last game date is unknown
     return player.last_game_date >= effectiveCutoff;
   }) ?? [];
 
@@ -449,6 +449,13 @@ export function WaiverWire() {
                 {effectiveCutoff && filteredPlayers.length < waiverData.players.length && (
                   <span className="text-gray-500"> (filtered by last game date)</span>
                 )}
+              </div>
+            )}
+
+            {/* Show message when backend returns no players */}
+            {waiverData && waiverData.players.length === 0 && (
+              <div className="card p-8 text-center">
+                <p className="text-gray-600">No waiver players found for this league.</p>
               </div>
             )}
 

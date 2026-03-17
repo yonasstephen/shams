@@ -312,7 +312,8 @@ def _compute_waiver_trends(
                     "injury_note": injury_note,
                     "stats": player_stats,
                     "last_game_date": (
-                        player_stats.last_game_date if player_stats else None
+                        player_stats.last_game_date if player_stats
+                        else (result.logs[0][0] if result.logs else None)
                     ),
                     "remaining_games": remaining_games,
                     "total_games": total_games,
