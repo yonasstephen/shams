@@ -172,9 +172,9 @@ def get_boxscore_dates(request: Request):
     yahoo_web.get_session_from_request(request)
 
     try:
-        # Get metadata to find current season
-        metadata = boxscore_cache.load_metadata()
-        season = metadata.get("season", "2025-26")
+        from tools.utils.season import get_current_season
+
+        season = get_current_season()
 
         # Parse all game files to extract dates and track game IDs
         date_counts: Dict[str, int] = {}
@@ -256,9 +256,9 @@ def get_latest_date(request: Request):
         if not dates_response:
             raise HTTPException(status_code=404, detail="No cached games found")
 
-        # Get metadata for season
-        metadata = boxscore_cache.load_metadata()
-        season = metadata.get("season", "2025-26")
+        from tools.utils.season import get_current_season
+
+        season = get_current_season()
 
         # First date is the latest (sorted descending)
         latest_date = dates_response[0].date
@@ -295,9 +295,9 @@ def get_games_for_date(request: Request, date: str):
                 status_code=400, detail="Invalid date format. Use YYYY-MM-DD"
             ) from e
 
-        # Get metadata to find current season
-        metadata = boxscore_cache.load_metadata()
-        season = metadata.get("season", "2025-26")
+        from tools.utils.season import get_current_season
+
+        season = get_current_season()
 
         # Get games directory for current season
         games_dir = boxscore_cache._get_games_dir(season)

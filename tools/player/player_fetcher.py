@@ -123,15 +123,15 @@ def fetch_player_team_id(player_id: int) -> Optional[int]:
 
 
 def fetch_player_stats_from_cache(
-    player_id: int, start: date, end: date, season: Optional[str] = None
+    player_id: int, season: str, start: date, end: date,
 ) -> List[Dict]:
     """Fetch player stats from box score cache.
 
     Args:
         player_id: NBA player ID
+        season: Season string (e.g., "2025-26")
         start: Start date
         end: End date
-        season: Season string (e.g., "2025-26"). If None, uses legacy location.
 
     Returns:
         List of game stat dictionaries

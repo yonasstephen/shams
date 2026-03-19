@@ -90,21 +90,15 @@ def _detect_active_season(_current_season: str) -> str:
     return detected_season
 
 
-def get_season_start_date(season: Optional[str] = None) -> date:
+def get_season_start_date(season: str) -> date:
     """Get the start date of the NBA season.
 
-    Auto-detects the active season and calculates its start date.
-
     Args:
-        season: Optional season string (e.g., "2025-26"). If None, auto-detects active season.
+        season: Season string (e.g., "2025-26").
 
     Returns:
         Season start date (typically October 21 of the first year)
     """
-    # Determine which season to use
-    if season is None:
-        season = _detect_active_season(SeasonAll.current_season)
-
     # Parse season (format: "2025-26")
     try:
         year = int(season.split("-")[0])
@@ -218,24 +212,19 @@ def refresh_boxscores(
     }
 
 
-def initial_build(season_start: Optional[date] = None, season: Optional[str] = None) -> Dict:
+def initial_build(season: str, season_start: Optional[date] = None) -> Dict:
     """Build initial cache from scratch for a specific season.
 
     Clears only the specified season's cache before rebuilding.
     Other seasons' data is preserved.
 
     Args:
+        season: Season string (e.g., "2025-26").
         season_start: Start date (defaults to season start)
-        season: Season override (e.g., "2025-26"). If None, auto-detects.
 
     Returns:
         Summary dictionary
     """
-    # Determine season to use first (before clearing)
-    if season is None:
-        current_season = SeasonAll.current_season
-        season = _detect_active_season(current_season)
-
     # Clear only this season's cache for clean start
     if _progress_display:
         _progress_display.update_status(f"Clearing cache for season {season}...")
@@ -338,7 +327,7 @@ def initial_build(season_start: Optional[date] = None, season: Optional[str] = N
     }
 
 
-def refresh_players_only(season: Optional[str] = None) -> Dict:
+def refresh_players_only(season: str) -> Dict:
     """Refresh only player indexes from already cached box scores.
 
     This rebuilds player indexes without making any API calls.
@@ -346,16 +335,11 @@ def refresh_players_only(season: Optional[str] = None) -> Dict:
     (e.g., after code changes to starter logic).
 
     Args:
-        season: Season string (e.g., "2025-26"). If None, auto-detects active season.
+        season: Season string (e.g., "2025-26").
 
     Returns:
         Summary dictionary with players_updated count
     """
-    if season is None:
-        # Detect active season
-        current_season = SeasonAll.current_season
-        season = _detect_active_season(current_season)
-
     # Check if we have cached games for this season
     metadata = boxscore_cache.load_metadata(season)
     games_cached = metadata.get("games_cached", 0)
@@ -442,7 +426,7 @@ def refresh_players_only(season: Optional[str] = None) -> Dict:
     }
 
 
-def smart_refresh(season: Optional[str] = None) -> Dict:
+def smart_refresh(season: str) -> Dict:
     """Smart refresh - only fetch missing dates for a specific season.
 
     Checks last cached date for the season and fetches from there to today.
@@ -450,16 +434,11 @@ def smart_refresh(season: Optional[str] = None) -> Dict:
     maintains its own independent cache.
 
     Args:
-        season: Season override (e.g., "2025-26"). If None, auto-detects.
+        season: Season string (e.g., "2025-26").
 
     Returns:
         Summary dictionary
     """
-    # Determine season to use
-    if season is None:
-        current_season = SeasonAll.current_season
-        season = _detect_active_season(current_season)
-
     # Load season-specific metadata
     metadata = boxscore_cache.load_metadata(season)
 

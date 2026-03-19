@@ -244,14 +244,17 @@ class PlayerCommand(Command):
         player_name = trend_result.player_name
 
         # Calculate season date range
+        from tools.utils.season import get_current_season
+
         today = date.today()
+        season = get_current_season()
         season_start = date(today.year if today.month >= 10 else today.year - 1, 10, 21)
 
         # Compute stats for different time periods
-        last_game_stats = compute_player_stats(player_id, "last", season_start, today)
-        last3_stats = compute_player_stats(player_id, "last3", season_start, today)
-        last7_stats = compute_player_stats(player_id, "last7", season_start, today)
-        season_stats = compute_player_stats(player_id, "season", season_start, today)
+        last_game_stats = compute_player_stats(player_id, season, "last", season_start, today)
+        last3_stats = compute_player_stats(player_id, season, "last3", season_start, today)
+        last7_stats = compute_player_stats(player_id, season, "last7", season_start, today)
+        season_stats = compute_player_stats(player_id, season, "season", season_start, today)
 
         # Get minutes for each period by recomputing minute trends
         last_game_minutes = (

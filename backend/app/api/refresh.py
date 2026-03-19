@@ -205,8 +205,10 @@ def rebuild_player_indexes_sync(progress: ProgressDisplayAdapter) -> dict:
     # Set progress display for refresh modules
     boxscore_refresh.set_progress_display(progress)
 
+    from tools.utils.season import get_current_season
+
     # Run refresh_players_only
-    result = boxscore_refresh.refresh_players_only()
+    result = boxscore_refresh.refresh_players_only(get_current_season())
 
     return {
         "player_indexes": {

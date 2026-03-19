@@ -77,8 +77,12 @@ def _compute_waiver_trends(
     # Clear game log caches
     clear_game_log_caches()
 
+    from tools.utils.season import get_current_season
+
+    season = get_current_season()
+
     # Check if box score cache needs refresh
-    metadata = boxscore_cache.load_metadata()
+    metadata = boxscore_cache.load_metadata(season)
     games_cached = metadata.get("games_cached", 0)
     cache_end_date = metadata.get("date_range", {}).get("end")
 
@@ -90,7 +94,7 @@ def _compute_waiver_trends(
         needs_refresh = True
 
     if needs_refresh:
-        result = boxscore_refresh.smart_refresh()
+        result = boxscore_refresh.smart_refresh(season)
 
     # Always fetch fresh players from Yahoo
     # Frontend context handles caching for navigation purposes
@@ -174,7 +178,7 @@ def _compute_waiver_trends(
 
         return team_b2b_map
 
-    team_b2b_map = _build_team_back_to_back_map("2025-26")
+    team_b2b_map = _build_team_back_to_back_map(season)
 
     enriched = []
     skipped_no_name = 0
@@ -226,10 +230,10 @@ def _compute_waiver_trends(
         if yahoo_player_id:
             nba_player_id = player_index.get_or_create_nba_id(yahoo_player_id, name)
         if nba_player_id:
-            season_start = get_season_start_date("2025-26")
+            season_start = get_season_start_date(season)
             today = date_cls.today()
             player_stats = compute_player_stats(
-                nba_player_id, stats_mode, season_start, today, agg_mode
+                nba_player_id, season, stats_mode, season_start, today, agg_mode
             )
 
         # Calculate average minutes
@@ -277,7 +281,7 @@ def _compute_waiver_trends(
                     nba_player_id,
                     week_start.isoformat(),
                     week_end.isoformat(),
-                    "2025-26",
+                    season,
                 )
                 total_games = len(schedule.game_dates) if schedule.game_dates else 0
                 # Calculate remaining games (from today onwards)
@@ -298,7 +302,7 @@ def _compute_waiver_trends(
                         nba_player_id,
                         next_week_start.isoformat(),
                         next_week_end.isoformat(),
-                        "2025-26",
+                        season,
                     )
                 )
                 next_week_games = (
@@ -313,7 +317,7 @@ def _compute_waiver_trends(
         if nba_player_id:
             from tools.schedule import schedule_cache
 
-            team_id = schedule_cache.get_player_team_id(nba_player_id, "2025-26")
+            team_id = schedule_cache.get_player_team_id(nba_player_id, season)
             if team_id:
                 has_back_to_back = team_b2b_map.get(team_id, False)
 

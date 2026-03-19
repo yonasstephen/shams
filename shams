@@ -100,13 +100,16 @@ class ShamsCLI:
         from tools.boxscore import boxscore_cache, boxscore_refresh
         from tools.utils.progress_display import ProgressDisplay
         
+        from tools.utils.season import get_current_season
+
         try:
+            season = get_current_season()
             # Check if cache needs refresh
-            if boxscore_cache.needs_refresh():
+            if boxscore_cache.needs_refresh(season):
                 with ProgressDisplay(self.console) as progress:
                     # Set progress display for boxscore refresh
                     boxscore_refresh.set_progress_display(progress)
-                    result = boxscore_refresh.smart_refresh()
+                    result = boxscore_refresh.smart_refresh(season)
                 
                 games = result.get("games_fetched", 0)
                 if games > 0:

@@ -212,10 +212,10 @@ def _load_week_schedule(league_key: Optional[str]):
         return None
 
 
-def _get_dnp_matchup(game_date: str, player_team_id: int, boxscore_cache) -> str:
+def _get_dnp_matchup(game_date: str, player_team_id: int, boxscore_cache, season: str) -> str:
     """Get matchup string for a DNP game."""
     try:
-        date_games = boxscore_cache.load_date_boxscore(game_date)
+        date_games = boxscore_cache.load_date_boxscore(game_date, season)
         if not date_games:
             return "DNP"
 
@@ -238,6 +238,7 @@ def _fetch_recent_games(
     today: date,
     boxscore_cache,
     week_schedule,
+    season: str,
 ) -> list[GameLog]:
     """Fetch recent 4 team games (including DNP)."""
     if not player_team_id:
@@ -246,7 +247,7 @@ def _fetch_recent_games(
     from tools.schedule import schedule_cache
     from tools.utils.league_cache import get_fantasy_week_for_date_str
 
-    team_schedule = schedule_cache.load_team_schedule(player_team_id, "2025-26")
+    team_schedule = schedule_cache.load_team_schedule(player_team_id, season)
     if not team_schedule:
         return _fallback_recent_games(games, week_schedule)
 
@@ -271,7 +272,7 @@ def _fetch_recent_games(
             recent_games.append(_game_to_log(game_data, fantasy_week))
         else:
             # Player didn't play - show DNP
-            matchup = _get_dnp_matchup(game_date, player_team_id, boxscore_cache)
+            matchup = _get_dnp_matchup(game_date, player_team_id, boxscore_cache, season)
             recent_games.append(
                 _create_empty_game_log(game_date, matchup, fantasy_week)
             )
@@ -304,10 +305,10 @@ def _fallback_recent_games(games: list, week_schedule) -> list[GameLog]:
     return recent_games
 
 
-def _check_today_has_boxscore(today: date, player_team_id: int, boxscore_cache) -> bool:
+def _check_today_has_boxscore(today: date, player_team_id: int, boxscore_cache, season: str) -> bool:
     """Check if today's game has been played (boxscore exists)."""
     try:
-        date_games = boxscore_cache.load_date_boxscore(today.isoformat())
+        date_games = boxscore_cache.load_date_boxscore(today.isoformat(), season)
         if not date_games:
             return False
 
@@ -323,17 +324,17 @@ def _check_today_has_boxscore(today: date, player_team_id: int, boxscore_cache) 
     return False
 
 
-def _get_matchup_from_schedule(game_date: str, player_team_id: int) -> str:
+def _get_matchup_from_schedule(game_date: str, player_team_id: int, season: str) -> str:
     """Get matchup string from NBA league schedule."""
     try:
-        if "2025-26" not in _LEAGUE_SCHEDULE_CACHE:
+        if season not in _LEAGUE_SCHEDULE_CACHE:
             from nba_api.stats.endpoints import scheduleleaguev2
 
-            _LEAGUE_SCHEDULE_CACHE["2025-26"] = scheduleleaguev2.ScheduleLeagueV2(
-                season="2025-26"
+            _LEAGUE_SCHEDULE_CACHE[season] = scheduleleaguev2.ScheduleLeagueV2(
+                season=season
             ).get_data_frames()[0]
 
-        schedule_df = _LEAGUE_SCHEDULE_CACHE["2025-26"]
+        schedule_df = _LEAGUE_SCHEDULE_CACHE[season]
         date_str = game_date.split("T")[0]
 
         if "gameDateNormalized" not in schedule_df.columns:
@@ -362,7 +363,8 @@ def _get_matchup_from_schedule(game_date: str, player_team_id: int) -> str:
 
 
 def _fetch_upcoming_games(
-    player_team_id: Optional[int], today: date, boxscore_cache, week_schedule
+    player_team_id: Optional[int], today: date, boxscore_cache, week_schedule,
+    season: str,
 ) -> tuple[list[GameLog], int]:
     """Fetch upcoming games from NBA schedule."""
     if not player_team_id:
@@ -371,13 +373,13 @@ def _fetch_upcoming_games(
     from tools.schedule import schedule_cache
     from tools.utils.league_cache import get_fantasy_week_for_date_str
 
-    team_schedule = schedule_cache.load_team_schedule(player_team_id, "2025-26")
+    team_schedule = schedule_cache.load_team_schedule(player_team_id, season)
     if not team_schedule:
         return [], 0
 
     # Check if today's game has been played
     today_has_boxscore = _check_today_has_boxscore(
-        today, player_team_id, boxscore_cache
+        today, player_team_id, boxscore_cache, season
     )
 
     # If today's game has been played, start from tomorrow
@@ -391,7 +393,7 @@ def _fetch_upcoming_games(
 
     upcoming_games = []
     for game_date in future_games[:4]:
-        matchup_str = _get_matchup_from_schedule(game_date, player_team_id)
+        matchup_str = _get_matchup_from_schedule(game_date, player_team_id, season)
         fantasy_week = get_fantasy_week_for_date_str(game_date, week_schedule)
         upcoming_games.append(
             _create_empty_game_log(game_date, matchup_str, fantasy_week)
@@ -477,8 +479,11 @@ def get_ranked_players(
                 detail="No rankings found. Please refresh rankings first.",
             )
 
+        from tools.utils.season import get_current_season
+
         today = date.today()
-        season_start = get_season_start_date("2025-26")
+        season = get_current_season()
+        season_start = get_season_start_date(season)
 
         # Collect all players with their stats
         players_data = []
@@ -504,7 +509,7 @@ def get_ranked_players(
                 nba_player_id, _ = find_player_matches(full_name, limit=1)
                 if nba_player_id:
                     player_stats_obj = compute_player_stats(
-                        nba_player_id, stats_mode, season_start, today, agg_mode
+                        nba_player_id, season, stats_mode, season_start, today, agg_mode
                     )
                     player_stats = _player_stats_to_model(player_stats_obj)
             except Exception:
@@ -583,10 +588,10 @@ def get_player_stats(
         season = f"{season_start_year}-{str(season_start_year + 1)[-2:]}"
 
         # Compute stats for different periods
-        last_game_stats = compute_player_stats(player_id, "last", season_start, today)
-        last3_stats = compute_player_stats(player_id, "last3", season_start, today)
-        last7_stats = compute_player_stats(player_id, "last7", season_start, today)
-        season_stats = compute_player_stats(player_id, "season", season_start, today)
+        last_game_stats = compute_player_stats(player_id, season, "last", season_start, today)
+        last3_stats = compute_player_stats(player_id, season, "last3", season_start, today)
+        last7_stats = compute_player_stats(player_id, season, "last7", season_start, today)
+        season_stats = compute_player_stats(player_id, season, "season", season_start, today)
 
         # Get player data and games
         from tools.boxscore import boxscore_cache
@@ -619,16 +624,16 @@ def get_player_stats(
         week_schedule = _load_week_schedule(league_key)
 
         # Get player's team ID
-        player_team_id = schedule_cache.get_player_team_id(player_id, "2025-26")
+        player_team_id = schedule_cache.get_player_team_id(player_id, season)
 
         # Fetch recent games (with DNP handling)
         recent_games = _fetch_recent_games(
-            player_id, player_team_id, games, today, boxscore_cache, week_schedule
+            player_id, player_team_id, games, today, boxscore_cache, week_schedule, season
         )
 
         # Fetch upcoming games
         upcoming_games, total_future_games = _fetch_upcoming_games(
-            player_team_id, today, boxscore_cache, week_schedule
+            player_team_id, today, boxscore_cache, week_schedule, season
         )
 
         # Get player rank from cache if league_key is provided

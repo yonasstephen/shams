@@ -25,14 +25,10 @@ logger = logging.getLogger(__name__)
 
 
 def _current_season() -> str:
-    """Return the active NBA season string derived from today's date (e.g. '2025-26').
+    """Return the active NBA season string derived from today's date (e.g. '2025-26')."""
+    from tools.utils.season import get_current_season
 
-    Oct–Dec  → first year of the new season  (e.g. Oct 2025 → 2025-26)
-    Jan–Sep  → second year of the current season (e.g. Feb 2026 → 2025-26)
-    """
-    today = date.today()
-    year = today.year if today.month >= 10 else today.year - 1
-    return f"{year}-{str(year + 1)[-2:]}"
+    return get_current_season()
 
 
 def _date_range(start: date, end: date) -> Iterable[date]:
@@ -156,7 +152,7 @@ def _build_optimized_player_active_dates(
     roster: Dict[str, List[dict]],
     week_start: date,
     week_end: date,
-    season: str = "2025-26",
+    season: str,
 ) -> Tuple[Dict[str, set], Dict[str, str]]:
     """Build mapping of player_key -> set of dates where player is active, using optimized roster positions.
 
@@ -521,7 +517,7 @@ def _project_player_stats(
     player: dict,
     game_dates: Sequence[str],
     stat_meta: Sequence[Dict[str, object]],
-    season: str = "2025-26",
+    season: str,
     projection_mode: str = "season",
 ) -> Dict[str, float]:
     """Project a player's stats for the given game dates using boxscore cache.
@@ -605,11 +601,11 @@ def _project_player_stats(
     # Compute per-game averages using selected mode
     player_stats = compute_player_stats(
         player_id=nba_id,
+        season=season,
         mode=projection_mode,
         season_start=season_start,
         today=today,
         agg_mode="avg",  # Always get per-game averages for projection
-        season=season,
     )
 
     if not player_stats:
@@ -665,7 +661,7 @@ def _project_team(
     matchup_start: date,
     matchup_end: date,
     stat_meta: Sequence[Dict[str, object]],
-    season: str = "2025-26",
+    season: str,
     projection_mode: str = "season",
     optimize_roster: bool = False,
 ) -> Dict[str, float]:
@@ -900,7 +896,7 @@ def _aggregate_current_week_player_contributions(
     week_start: date,
     week_end: date,
     stat_meta: Sequence[Dict[str, object]],
-    _season: str = "2025-26",
+    _season: str,
     optimize_roster: bool = False,
 ) -> Tuple[
     Dict[str, Dict[str, float]],
@@ -1089,7 +1085,7 @@ def _aggregate_current_week_player_contributions(
 
         # Fetch only games that have actually been played (from week_start up to and including today)
         games_this_week = player_fetcher.fetch_player_stats_from_cache(
-            nba_id, week_start, fetch_end, _season
+            nba_id, _season, week_start, fetch_end
         )
 
         # Debug: Check if player has games but no active dates (indicating they're in IL/BN all week)
@@ -1186,7 +1182,7 @@ def _compute_daily_player_contributions(
     week_start: date,
     week_end: date,
     stat_meta: Sequence[Dict[str, object]],
-    season: str = "2025-26",
+    season: str,
     optimized_positions_by_date: Optional[Dict[str, Dict[str, str]]] = None,
 ) -> Tuple[
     Dict[str, Dict[str, Dict[str, float]]],
@@ -1365,7 +1361,7 @@ def _aggregate_projected_contributions(
     week_start: date,
     week_end: date,
     stat_meta: Sequence[Dict[str, object]],
-    season: str = "2025-26",
+    season: str,
     projection_mode: str = "season",
     optimize_roster: bool = False,
 ) -> Tuple[
@@ -1556,11 +1552,11 @@ def _aggregate_projected_contributions(
             today = date.today()
             player_stats = compute_player_stats(
                 player_id=nba_id,
+                season=season,
                 mode=projection_mode,
                 season_start=season_start,
                 today=today,
                 agg_mode="avg",
-                season=season,
             )
 
             if player_stats:
@@ -1798,9 +1794,9 @@ def _build_matchup_projection(
     week_start: date,
     week_end: date,
     team_entries: Sequence[dict],
+    season: str,
     roster_cache: Optional[Dict[str, Dict[str, List[dict]]]] = None,
     week: Optional[int] = None,
-    season: str = "2025-26",
     projection_mode: str = "season",
     optimize_map: Optional[Dict[str, bool]] = None,
 ) -> Dict[str, object]:
@@ -2234,9 +2230,9 @@ def project_league_matchups(
                 week_start,
                 week_end,
                 [team_a, team_b],
-                roster_cache,
-                week=week_value,
                 season=season,
+                roster_cache=roster_cache,
+                week=week_value,
                 projection_mode=projection_mode,
             )
             bundle["week"] = getattr(matchup, "week", None)

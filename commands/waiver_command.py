@@ -446,7 +446,10 @@ class WaiverCommand(Command):
             fetch_user_team_key,
         )
 
-        metadata = boxscore_cache.load_metadata()
+        from tools.utils.season import get_current_season
+
+        season = get_current_season()
+        metadata = boxscore_cache.load_metadata(season)
         games_cached = metadata.get("games_cached", 0)
         cache_end_date = metadata.get("date_range", {}).get("end")
 
@@ -467,7 +470,7 @@ class WaiverCommand(Command):
             with self.console.status(
                 "[cyan]Refreshing box score cache...", spinner="dots"
             ):
-                result = boxscore_refresh.smart_refresh()
+                result = boxscore_refresh.smart_refresh(season)
 
             games_added = result.get("games_fetched", 0)
             if games_added > 0:
@@ -571,10 +574,10 @@ class WaiverCommand(Command):
                 player_stats = None
                 player_id, _ = find_player_matches(name, limit=1)
                 if player_id:
-                    season_start = get_season_start_date("2025-26")
+                    season_start = get_season_start_date(season)
                     today = date_cls.today()
                     player_stats = compute_player_stats(
-                        player_id, stats_mode, season_start, today, agg_mode
+                        player_id, season, stats_mode, season_start, today, agg_mode
                     )
 
                 # Calculate average minutes based on stats mode
@@ -623,7 +626,7 @@ class WaiverCommand(Command):
                                 player_id,
                                 week_start.isoformat(),
                                 week_end.isoformat(),
-                                "2025-26",
+                                season,
                             )
                         )
                         total_games = (

@@ -355,15 +355,16 @@ def get_season_info():
     """
     from datetime import date
 
-    from nba_api.stats.library.parameters import SeasonAll
+    from tools.utils.season import get_current_season
+
+    detected_season = get_current_season()
 
     # Get cached season from metadata
-    metadata = boxscore_cache.load_metadata()
+    metadata = boxscore_cache.load_metadata(detected_season)
     cached_season = metadata.get("season") or None
 
     try:
-        # Get current season and start date using date-based detection
-        detected_season = boxscore_refresh._detect_active_season(SeasonAll.current_season)
+        # Get current season and start date
         season_start = boxscore_refresh.get_season_start_date(detected_season)
         today = date.today()
 
@@ -426,11 +427,15 @@ def get_cache_debug():
     Returns:
         Detailed information about all cached data including box scores and schedules
     """
+    from tools.utils.season import get_current_season
+
     # Scan box score cache
     boxscore_cache_dir = boxscore_cache.get_cache_dir()
 
+    season = get_current_season()
+
     # Load metadata
-    metadata = boxscore_cache.load_metadata()
+    metadata = boxscore_cache.load_metadata(season)
 
     # Scan game files by season
     games_by_season = {}
@@ -578,7 +583,7 @@ def get_cache_debug():
                 player_index_by_season[season] = index_files
 
     # Get cached date range
-    cache_start, cache_end = boxscore_cache.get_cached_date_range()
+    cache_start, cache_end = boxscore_cache.get_cached_date_range(season)
 
     return CacheDebugResponse(
         boxscore_cache={
