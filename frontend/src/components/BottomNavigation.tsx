@@ -51,6 +51,9 @@ export function BottomNavigation() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-bottom">
+      <div className="text-center text-xs text-gray-400 pt-1">
+        v{__APP_VERSION__}
+      </div>
       <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
           const active = isActive(item.path);
