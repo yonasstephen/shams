@@ -224,17 +224,18 @@ def _compute_waiver_trends(
 
         # Compute 9-cat stats for this player
         player_stats = None
-        # Get Yahoo player ID and look up NBA player ID using exact name match
-        yahoo_player_id = player.get("player_id")
         nba_player_id = None
-        if yahoo_player_id:
-            nba_player_id = player_index.get_or_create_nba_id(yahoo_player_id, name)
-        if nba_player_id:
-            season_start = get_season_start_date(season)
-            today = date_cls.today()
-            player_stats = compute_player_stats(
-                nba_player_id, season, stats_mode, season_start, today, agg_mode
-            )
+        if isinstance(result, TrendComputation):
+            # Get Yahoo player ID and look up NBA player ID using exact name match
+            yahoo_player_id = player.get("player_id")
+            if yahoo_player_id:
+                nba_player_id = player_index.get_or_create_nba_id(yahoo_player_id, name)
+            if nba_player_id:
+                season_start = get_season_start_date(season)
+                today = date_cls.today()
+                player_stats = compute_player_stats(
+                    nba_player_id, season, stats_mode, season_start, today, agg_mode
+                )
 
         # Calculate average minutes
         avg_minutes = 0.0
