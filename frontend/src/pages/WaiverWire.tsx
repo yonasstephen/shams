@@ -442,6 +442,22 @@ export function WaiverWire() {
               </div>
             )}
 
+            {/* Show message when no players returned from backend */}
+            {waiverData && waiverData.players.length === 0 && !loading && (
+              <div className="card p-8 text-center">
+                <p className="text-gray-600 mb-2">No players found.</p>
+                <p className="text-sm text-gray-500">
+                  The server returned 0 players. This may indicate a data processing issue. Try refreshing.
+                </p>
+                <button
+                  onClick={() => handleFetch()}
+                  className="mt-4 px-4 py-2 text-sm bg-neutral-100 hover:bg-neutral-200 text-neutral-900 rounded-lg transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
             {/* Show count of filtered players */}
             {waiverData && waiverData.players.length > 0 && (
               <div className="mb-4 text-sm text-gray-600">

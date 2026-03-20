@@ -77,8 +77,12 @@ def _compute_waiver_trends(
     # Clear game log caches
     clear_game_log_caches()
 
+    from tools.utils.season import get_current_season
+
+    season = get_current_season()
+
     # Check if box score cache needs refresh
-    metadata = boxscore_cache.load_metadata()
+    metadata = boxscore_cache.load_metadata(season)
     games_cached = metadata.get("games_cached", 0)
     cache_end_date = metadata.get("date_range", {}).get("end")
 
@@ -90,7 +94,7 @@ def _compute_waiver_trends(
         needs_refresh = True
 
     if needs_refresh:
-        result = boxscore_refresh.smart_refresh()
+        result = boxscore_refresh.smart_refresh(season)
 
     # Always fetch fresh players from Yahoo
     # Frontend context handles caching for navigation purposes
@@ -174,13 +178,19 @@ def _compute_waiver_trends(
 
         return team_b2b_map
 
-    team_b2b_map = _build_team_back_to_back_map("2025-26")
+    team_b2b_map = _build_team_back_to_back_map(season)
 
     enriched = []
+    skipped_no_name = 0
+    skipped_exception = 0
+    skipped_no_trend = 0
+
+    logger.info("Starting enrichment loop for %d players", len(players))
 
     for player in players:
         name = player.get("name", {}).get("full")
         if not name:
+            skipped_no_name += 1
             continue
 
         # Extract availability status (FA or W)
@@ -192,6 +202,8 @@ def _compute_waiver_trends(
         injury_status = player.get("status", "")
         injury_note = player.get("injury_note", "")
 
+        # Try to get minute trend data (optional - player still shown without it)
+        trend_result = None
         try:
             result = process_minute_trend_query(
                 name,
@@ -199,36 +211,45 @@ def _compute_waiver_trends(
                 suggestion_limit=5,
                 timeout=60,
             )
-        except Exception:
-            continue
+            if isinstance(result, TrendComputation):
+                trend_result = result
+            else:
+                skipped_no_trend += 1
+                if skipped_no_trend <= 5:
+                    logger.warning("No trend match for player '%s' (type=%s)", name, type(result).__name__)
+        except Exception as e:
+            skipped_exception += 1
+            if skipped_exception <= 5:
+                logger.warning("Exception for player '%s': %s", name, e)
 
+        # Compute 9-cat stats for this player
+        player_stats = None
+        nba_player_id = None
         if isinstance(result, TrendComputation):
-            # Compute 9-cat stats for this player
-            player_stats = None
             # Get Yahoo player ID and look up NBA player ID using exact name match
             yahoo_player_id = player.get("player_id")
-            nba_player_id = None
             if yahoo_player_id:
                 nba_player_id = player_index.get_or_create_nba_id(yahoo_player_id, name)
             if nba_player_id:
-                season_start = get_season_start_date("2025-26")
+                season_start = get_season_start_date(season)
                 today = date_cls.today()
                 player_stats = compute_player_stats(
-                    nba_player_id, stats_mode, season_start, today,
-                    "2025-26", agg_mode
+                    nba_player_id, season, stats_mode, season_start, today, agg_mode
                 )
 
-            # Calculate average minutes
+        # Calculate average minutes
+        avg_minutes = 0.0
+        if trend_result:
             num_games, num_days = _parse_stat_mode(stats_mode)
             if num_games == 1:
-                avg_minutes = result.last_minutes
+                avg_minutes = trend_result.last_minutes
             elif num_days is not None:
                 # For date-based filtering, calculate average from available games
                 from datetime import timedelta
 
                 cutoff_date = date_cls.today() - timedelta(days=num_days)
                 filtered_logs = []
-                for log in result.logs:
+                for log in trend_result.logs:
                     try:
                         game_date = date_cls.fromisoformat(log[0])
                         if game_date >= cutoff_date:
@@ -240,86 +261,92 @@ def _compute_waiver_trends(
                         filtered_logs
                     )
                 else:
-                    avg_minutes = result.last_minutes
+                    avg_minutes = trend_result.last_minutes
             else:
-                logs = result.logs
+                logs = trend_result.logs
                 games_to_use = logs[:num_games] if num_games else logs
                 if games_to_use:
                     avg_minutes = sum(log[1] for log in games_to_use) / len(
                         games_to_use
                     )
                 else:
-                    avg_minutes = result.last_minutes
+                    avg_minutes = trend_result.last_minutes
 
-            # Calculate games for current week
-            remaining_games = 0
-            total_games = 0
-            next_week_games = 0
-            if week_start and week_end and nba_player_id:
-                try:
-                    schedule = schedule_fetcher.fetch_player_upcoming_games_from_cache(
+        # Calculate games for current week
+        remaining_games = 0
+        total_games = 0
+        next_week_games = 0
+        if week_start and week_end and nba_player_id:
+            try:
+                schedule = schedule_fetcher.fetch_player_upcoming_games_from_cache(
+                    nba_player_id,
+                    week_start.isoformat(),
+                    week_end.isoformat(),
+                    season,
+                )
+                total_games = len(schedule.game_dates) if schedule.game_dates else 0
+                # Calculate remaining games (from today onwards)
+                today = date_cls.today()
+                remaining_dates = [
+                    d for d in schedule.game_dates if d >= today.isoformat()
+                ]
+                remaining_games = len(remaining_dates)
+            except Exception:
+                # If schedule fetch fails, just use 0
+                pass
+
+        # Calculate games for next week
+        if next_week_start and next_week_end and nba_player_id:
+            try:
+                next_schedule = (
+                    schedule_fetcher.fetch_player_upcoming_games_from_cache(
                         nba_player_id,
-                        week_start.isoformat(),
-                        week_end.isoformat(),
-                        "2025-26",
+                        next_week_start.isoformat(),
+                        next_week_end.isoformat(),
+                        season,
                     )
-                    total_games = len(schedule.game_dates) if schedule.game_dates else 0
-                    # Calculate remaining games (from today onwards)
-                    today = date_cls.today()
-                    remaining_dates = [
-                        d for d in schedule.game_dates if d >= today.isoformat()
-                    ]
-                    remaining_games = len(remaining_dates)
-                except Exception:
-                    # If schedule fetch fails, just use 0
-                    pass
+                )
+                next_week_games = (
+                    len(next_schedule.game_dates) if next_schedule.game_dates else 0
+                )
+            except Exception:
+                # If schedule fetch fails, just use 0
+                pass
 
-            # Calculate games for next week
-            if next_week_start and next_week_end and nba_player_id:
-                try:
-                    next_schedule = (
-                        schedule_fetcher.fetch_player_upcoming_games_from_cache(
-                            nba_player_id,
-                            next_week_start.isoformat(),
-                            next_week_end.isoformat(),
-                            "2025-26",
-                        )
-                    )
-                    next_week_games = (
-                        len(next_schedule.game_dates) if next_schedule.game_dates else 0
-                    )
-                except Exception:
-                    # If schedule fetch fails, just use 0
-                    pass
+        # Check if player's team has back-to-back games (today + tomorrow)
+        has_back_to_back = False
+        if nba_player_id:
+            from tools.schedule import schedule_cache
 
-            # Check if player's team has back-to-back games (today + tomorrow)
-            has_back_to_back = False
-            if nba_player_id:
-                from tools.schedule import schedule_cache
+            team_id = schedule_cache.get_player_team_id(nba_player_id, season)
+            if team_id:
+                has_back_to_back = team_b2b_map.get(team_id, False)
 
-                team_id = schedule_cache.get_player_team_id(nba_player_id, "2025-26")
-                if team_id:
-                    has_back_to_back = team_b2b_map.get(team_id, False)
+        enriched.append(
+            {
+                "name": name,
+                "player_id": nba_player_id,
+                "trend": trend_result.trend if trend_result else 0.0,
+                "minutes": avg_minutes,
+                "status": status,
+                "injury_status": injury_status,
+                "injury_note": injury_note,
+                "stats": player_stats,
+                "last_game_date": (
+                    player_stats.last_game_date if player_stats else None
+                ),
+                "remaining_games": remaining_games,
+                "total_games": total_games,
+                "next_week_games": next_week_games,
+                "has_back_to_back": has_back_to_back,
+            }
+        )
 
-            enriched.append(
-                {
-                    "name": name,
-                    "player_id": nba_player_id,
-                    "trend": result.trend,
-                    "minutes": avg_minutes,
-                    "status": status,
-                    "injury_status": injury_status,
-                    "injury_note": injury_note,
-                    "stats": player_stats,
-                    "last_game_date": (
-                        player_stats.last_game_date if player_stats else None
-                    ),
-                    "remaining_games": remaining_games,
-                    "total_games": total_games,
-                    "next_week_games": next_week_games,
-                    "has_back_to_back": has_back_to_back,
-                }
-            )
+    logger.info(
+        "Enrichment complete: %d enriched, %d skipped (no_name=%d, exception=%d, no_trend=%d)",
+        len(enriched), skipped_no_name + skipped_exception + skipped_no_trend,
+        skipped_no_name, skipped_exception, skipped_no_trend,
+    )
 
     # Sort players if requested
     if sort_column:

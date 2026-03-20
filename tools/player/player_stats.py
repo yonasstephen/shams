@@ -110,13 +110,14 @@ def _parse_stat_mode(mode: str) -> tuple[Optional[int], Optional[int]]:
 
 
 def compute_player_stats(
-    player_id: int, mode: str, season_start: date, today: date,
-    season: str, agg_mode: str = "avg",
+    player_id: int, season: str, mode: str, season_start: date, today: date,
+    agg_mode: str = "avg",
 ) -> Optional[PlayerStats]:
     """Compute 9-category stats from cached box scores.
 
     Args:
         player_id: NBA player ID
+        season: Season string (e.g., "2025-26")
         mode: Stats calculation mode ('last', 'lastN', 'lastNd', or 'season')
         season_start: Start date of the season
         today: Current date
@@ -136,7 +137,7 @@ def compute_player_stats(
 
     # Fetch cached games
     cached_games = player_fetcher.fetch_player_stats_from_cache(
-        player_id, season_start, today, season
+        player_id, season, season_start, today
     )
 
     if not cached_games:

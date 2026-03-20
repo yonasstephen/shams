@@ -166,19 +166,23 @@ class RefreshCommand(Command):
             # Start overall timing
             timing_tracker.start("total_refresh")
 
+            from tools.utils.season import get_current_season
+
+            season = get_current_season()
+
             try:
                 if players_only:
                     # Players-only mode: rebuild indexes from cached games
                     progress.update_status(
                         "[cyan]Rebuilding player indexes from cached games..."
                     )
-                    result = boxscore_refresh.refresh_players_only()
+                    result = boxscore_refresh.refresh_players_only(season)
                 elif force_rebuild:
                     # Force rebuild: clear cache and rebuild from scratch
                     progress.update_status(
                         "[cyan]Force rebuild: clearing cache and rebuilding from scratch..."
                     )
-                    result = boxscore_refresh.initial_build()
+                    result = boxscore_refresh.initial_build(season)
 
                     # Clear waiver cache to force fresh fetch from Yahoo
                     from tools.utils import waiver_cache
@@ -194,7 +198,7 @@ class RefreshCommand(Command):
                     progress.update_status(
                         "[cyan]Smart refresh: fetching only missing dates..."
                     )
-                    result = boxscore_refresh.smart_refresh()
+                    result = boxscore_refresh.smart_refresh(season)
 
                     # Clear waiver cache to force fresh fetch from Yahoo
                     from tools.utils import waiver_cache

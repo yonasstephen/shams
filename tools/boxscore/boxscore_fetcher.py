@@ -284,7 +284,7 @@ def fetch_and_cache_date_range(
     start: date,
     end: date,
     date_game_ids: Dict[str, List[str]],
-    season: str = "2025-26",
+    season: str,
     game_times: Optional[Dict[str, str]] = None,
     game_matchups: Optional[Dict[str, str]] = None,
 ) -> tuple[int, List[Dict]]:

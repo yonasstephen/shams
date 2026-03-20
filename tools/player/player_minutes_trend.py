@@ -105,12 +105,9 @@ def normalize_season_type(value: str) -> SeasonType:
 
 def _get_current_season() -> str:
     """Get the current NBA season string (e.g., '2025-26')."""
-    from datetime import date
+    from tools.utils.season import get_current_season
 
-    today = date.today()
-    # NBA season starts in October, so if we're before October, use previous year
-    year = today.year if today.month >= 10 else today.year - 1
-    return f"{year}-{str(year + 1)[-2:]}"
+    return get_current_season()
 
 
 @lru_cache(maxsize=1)
@@ -245,7 +242,7 @@ def fetch_recent_minute_logs(
     season_start = get_season_start_date(SeasonAll.current_season)
 
     try:
-        cached_games = fetch_player_stats_from_cache(player_id, season_start, today)
+        cached_games = fetch_player_stats_from_cache(player_id, SeasonAll.current_season, season_start, today)
 
         if cached_games:
             # Use cached data

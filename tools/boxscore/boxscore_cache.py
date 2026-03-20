@@ -140,28 +140,24 @@ def clear_cache() -> None:
     print("✓ Box score cache completely cleared!")
 
 
-def _get_metadata_path(season: str | None = None) -> Path:
+def _get_metadata_path(season: str) -> Path:
     """Get the metadata file path.
-    
+
     Args:
-        season: Season string (e.g., "2025-26"). If provided, returns
-                season-specific metadata path. If None, returns the
-                legacy global metadata path for backward compatibility.
-    
+        season: Season string (e.g., "2025-26"). Returns season-specific
+                metadata path.
+
     Returns:
         Path to metadata file
     """
-    if season:
-        return get_cache_dir() / f"metadata_{season}.json"
-    return get_cache_dir() / "metadata.json"
+    return get_cache_dir() / f"metadata_{season}.json"
 
 
-def load_metadata(season: str | None = None) -> dict:
+def load_metadata(season: str) -> dict:
     """Load cache metadata.
 
     Args:
-        season: Season string (e.g., "2025-26"). If provided, loads
-                season-specific metadata. If None, loads legacy global metadata.
+        season: Season string (e.g., "2025-26").
 
     Returns:
         Metadata dictionary or empty dict if file doesn't exist
@@ -190,13 +186,12 @@ def load_metadata(season: str | None = None) -> dict:
         }
 
 
-def save_metadata(data: dict, season: str | None = None) -> None:
+def save_metadata(data: dict, season: str) -> None:
     """Save cache metadata.
 
     Args:
         data: Metadata dictionary to save
-        season: Season string (e.g., "2025-26"). If provided, saves to
-                season-specific metadata file. If None, saves to legacy global file.
+        season: Season string (e.g., "2025-26").
     """
     metadata_path = _get_metadata_path(season)
 
@@ -232,7 +227,7 @@ def load_game(game_id: str, season: str) -> Optional[dict]:
         return None
 
 
-def load_date_boxscore(game_date: str, season: str = "2025-26") -> Optional[Dict[str, dict]]:
+def load_date_boxscore(game_date: str, season: str) -> Optional[Dict[str, dict]]:
     """Load all game box scores for a specific date.
 
     Args:
@@ -339,14 +334,13 @@ def save_player_games(player_id: int, player_name: str, data: dict,
 
 
 def save_player_eligibility(player_id: int, eligible_positions: List[str],
-                            season: str | None = None) -> None:
+                            season: str) -> None:
     """Save or update a player's eligible positions in their cached data.
 
     Args:
         player_id: NBA player ID
         eligible_positions: List of eligible position strings (e.g., ["PG", "SG"])
-        season: Season string (e.g., "2025-26"). If provided, updates
-                season-specific player data.
+        season: Season string (e.g., "2025-26").
     """
     # Load existing player data
     player_data = load_player_games(player_id, season)
@@ -364,13 +358,12 @@ def save_player_eligibility(player_id: int, eligible_positions: List[str],
     save_player_games(player_id, player_name, player_data, season)
 
 
-def load_player_eligibility(player_id: int, season: str | None = None) -> Optional[List[str]]:
+def load_player_eligibility(player_id: int, season: str) -> Optional[List[str]]:
     """Load a player's eligible positions from cache.
 
     Args:
         player_id: NBA player ID
-        season: Season string (e.g., "2025-26"). If provided, loads from
-                season-specific player data.
+        season: Season string (e.g., "2025-26").
 
     Returns:
         List of eligible position strings or None if not found
@@ -383,12 +376,11 @@ def load_player_eligibility(player_id: int, season: str | None = None) -> Option
     return player_data.get("eligible_positions")
 
 
-def get_cached_date_range(season: str | None = None) -> Tuple[Optional[date], Optional[date]]:
+def get_cached_date_range(season: str) -> Tuple[Optional[date], Optional[date]]:
     """Get the date range of cached data.
 
     Args:
-        season: Season string (e.g., "2025-26"). If provided, gets range
-                from season-specific metadata. If None, uses legacy metadata.
+        season: Season string (e.g., "2025-26").
 
     Returns:
         Tuple of (start_date, end_date) or (None, None) if no cache
@@ -410,12 +402,11 @@ def get_cached_date_range(season: str | None = None) -> Tuple[Optional[date], Op
         return (None, None)
 
 
-def needs_refresh(season: str | None = None) -> bool:
+def needs_refresh(season: str) -> bool:
     """Check if cache needs refresh based on last update time.
 
     Args:
-        season: Season string (e.g., "2025-26"). If provided, checks
-                season-specific metadata. If None, uses legacy metadata.
+        season: Season string (e.g., "2025-26").
 
     Returns:
         True if cache should be refreshed
@@ -740,7 +731,7 @@ def backfill_team_scores(season: str) -> int:
     return updated_count
 
 
-def backfill_scores_and_rebuild_indexes(season: str = "2025-26") -> dict:
+def backfill_scores_and_rebuild_indexes(season: str) -> dict:
     """Backfill team scores and rebuild player indexes.
 
     This is the main function to call to populate W/L and score data

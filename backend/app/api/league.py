@@ -152,7 +152,9 @@ def get_team_schedule(_request: Request, league_key: str):
 
         # Get all NBA teams
         all_teams = teams.get_teams()
-        season = "2025-26"
+        from tools.utils.season import get_current_season
+
+        season = get_current_season()
         today = date_cls.today()
 
         team_schedules: List[TeamScheduleInfo] = []

@@ -74,10 +74,10 @@ def test_get_cached_date_range(temp_cache_dir, monkeypatch):
         "players_indexed": 200,
         "date_range": {"start": "2024-10-25", "end": "2024-11-01"},
     }
-    boxscore_cache.save_metadata(metadata)
+    boxscore_cache.save_metadata(metadata, "2024-25")
 
     # Get date range
-    start, end = boxscore_cache.get_cached_date_range()
+    start, end = boxscore_cache.get_cached_date_range("2024-25")
 
     assert start == date(2024, 10, 25)
     assert end == date(2024, 11, 1)
@@ -88,7 +88,7 @@ def test_get_cached_date_range_no_cache(temp_cache_dir, monkeypatch):
     """Test getting date range when no cache exists."""
     monkeypatch.setattr(boxscore_cache, "get_cache_dir", lambda: temp_cache_dir)
 
-    start, end = boxscore_cache.get_cached_date_range()
+    start, end = boxscore_cache.get_cached_date_range("2024-25")
 
     assert start is None
     assert end is None
@@ -187,18 +187,18 @@ def test_clear_cache(temp_cache_dir, sample_game_data, monkeypatch):
 
     # Create some cached data
     boxscore_cache.save_game("test_game", "2024-25", "2024-11-01", sample_game_data)
-    boxscore_cache.save_metadata({"test": "data"})
+    boxscore_cache.save_metadata({"test": "data"}, "2024-25")
 
     # Verify data exists
     assert (temp_cache_dir / "games").exists()
-    assert (temp_cache_dir / "metadata.json").exists()
+    assert (temp_cache_dir / "metadata_2024-25.json").exists()
 
     # Clear cache
     boxscore_cache.clear_cache()
 
     # Verify data is gone
     assert not (temp_cache_dir / "games").exists()
-    assert not (temp_cache_dir / "metadata.json").exists()
+    assert not (temp_cache_dir / "metadata_2024-25.json").exists()
 
 
 @pytest.mark.unit
@@ -206,7 +206,7 @@ def test_needs_refresh_no_metadata(temp_cache_dir, monkeypatch):
     """Test needs_refresh when no metadata exists."""
     monkeypatch.setattr(boxscore_cache, "get_cache_dir", lambda: temp_cache_dir)
 
-    assert boxscore_cache.needs_refresh() is True
+    assert boxscore_cache.needs_refresh("2024-25") is True
 
 
 @pytest.mark.unit
@@ -218,9 +218,9 @@ def test_needs_refresh_old_data(temp_cache_dir, monkeypatch):
     from datetime import timedelta
     old_time = datetime.now() - timedelta(hours=13)  # 13 hours ago, > 12 hour threshold
     metadata = {"last_updated": old_time.isoformat()}
-    boxscore_cache.save_metadata(metadata)
+    boxscore_cache.save_metadata(metadata, "2024-25")
 
-    assert boxscore_cache.needs_refresh() is True
+    assert boxscore_cache.needs_refresh("2024-25") is True
 
 
 @pytest.mark.unit
@@ -230,9 +230,9 @@ def test_needs_refresh_recent_data(temp_cache_dir, monkeypatch):
 
     # Save metadata with recent timestamp
     metadata = {"last_updated": datetime.now().isoformat()}
-    boxscore_cache.save_metadata(metadata)
+    boxscore_cache.save_metadata(metadata, "2024-25")
 
-    assert boxscore_cache.needs_refresh() is False
+    assert boxscore_cache.needs_refresh("2024-25") is False
 
 
 @pytest.mark.unit
@@ -249,17 +249,17 @@ def test_metadata_end_date_reflects_actual_data(
     boxscore_cache.save_game("game1", season, game_date_1, sample_game_data)
 
     # Update metadata as if we requested data through 2024-11-20 but only got data for 2024-11-19
-    metadata = boxscore_cache.load_metadata()
+    metadata = boxscore_cache.load_metadata(season)
     metadata["season"] = season
     metadata["games_cached"] = 1
     metadata["date_range"] = {
         "start": game_date_1,
         "end": game_date_1,  # Should reflect actual last data, not requested end (2024-11-20)
     }
-    boxscore_cache.save_metadata(metadata)
+    boxscore_cache.save_metadata(metadata, season)
 
     # Verify the end date is 2024-11-19, not 2024-11-20
-    start, end = boxscore_cache.get_cached_date_range()
+    start, end = boxscore_cache.get_cached_date_range(season)
     assert end == date(
         2024, 11, 19
     ), "End date should reflect last date with actual data"

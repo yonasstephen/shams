@@ -15,7 +15,7 @@ class PlayerSchedule:
     game_dates: Sequence[str]
 
 
-def get_season_start_date(season: str = "2025-26") -> date:
+def get_season_start_date(season: str) -> date:
     """Get the start date of an NBA season.
 
     Args:

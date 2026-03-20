@@ -123,9 +123,11 @@ def show_capabilities(
     # Show cache information
     try:
         from tools.boxscore import boxscore_cache
+        from tools.utils.season import get_current_season
 
-        _, cache_end = boxscore_cache.get_cached_date_range()
-        metadata = boxscore_cache.load_metadata()
+        season = get_current_season()
+        _, cache_end = boxscore_cache.get_cached_date_range(season)
+        metadata = boxscore_cache.load_metadata(season)
 
         if cache_end:
             games_count = metadata.get("games_cached", 0)
