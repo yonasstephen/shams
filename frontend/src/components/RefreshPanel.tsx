@@ -249,10 +249,11 @@ export function RefreshPanel({ leagueKey, refreshTrigger, externalRefreshing = f
       console.log('Adding end_date:', endDate);
     }
     
-    // Add season parameter if selected (triggers rebuild if different from cached)
-    if (selectedSeason) {
-      params.append('season', selectedSeason);
-      console.log('Adding season:', selectedSeason);
+    // Add season parameter (required by backend)
+    const season = selectedSeason || seasonInfo?.season;
+    if (season) {
+      params.append('season', season);
+      console.log('Adding season:', season);
     }
     
     // Create EventSource for SSE

@@ -37,7 +37,7 @@ class RefreshOptions(BaseModel):
     force_rebuild: bool = False
     start_date: str | None = None
     end_date: str | None = None
-    season: str | None = None  # Override season (triggers rebuild if different from cached)
+    season: str  # Required season (e.g., "2025-26")
 
 
 class SSEProgressDisplay:
@@ -117,20 +117,19 @@ class ProgressDisplayAdapter:
 
 def refresh_box_scores_sync(
     progress: ProgressDisplayAdapter,
+    season: str,
     force_rebuild: bool = False,
     start_date: str | None = None,
     end_date: str | None = None,
-    season: str | None = None,
 ) -> dict:
     """Refresh box scores with progress tracking (synchronous).
-    
+
     Args:
         progress: Progress display adapter for status updates
+        season: Season string (e.g., "2025-26"). Required.
         force_rebuild: If True, clears cache and rebuilds from scratch
         start_date: Optional start date for date range refresh
         end_date: Optional end date for date range refresh
-        season: Optional season override. If different from cached season,
-                triggers a full rebuild with confirmation.
     """
     # Set progress display for refresh modules
     boxscore_refresh.set_progress_display(progress)
@@ -138,7 +137,6 @@ def refresh_box_scores_sync(
     # Normalize empty strings to None
     start_date = start_date if start_date and start_date.strip() else None
     end_date = end_date if end_date and end_date.strip() else None
-    season = season if season and season.strip() else None
 
     # Note: Season changes no longer trigger automatic rebuilds.
     # Each season maintains its own independent cache.
@@ -358,10 +356,10 @@ def run_refresh_operations(
             event_queue.put(sse_display.emit_status("Starting box score refresh..."))
             result = refresh_box_scores_sync(
                 progress,
+                options.season,
                 options.force_rebuild,
                 options.start_date,
                 options.end_date,
-                options.season,
             )
             summary.update(result)
 
@@ -487,8 +485,8 @@ async def start_refresh(
     end_date: str | None = Query(
         None, description="End date for box score refresh (YYYY-MM-DD)"
     ),
-    season: str | None = Query(
-        None, description="Season override (e.g., '2025-26'). If different from cached, triggers rebuild."
+    season: str = Query(
+        ..., description="Season (e.g., '2025-26'). Required to prevent silent failures."
     ),
 ):
     """Start a refresh operation with SSE progress updates.

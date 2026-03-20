@@ -26,6 +26,7 @@ export function Home() {
   const [isLoadingGames, setIsLoadingGames] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<{ id: number; name: string } | null>(null);
   const [missingGamesCount, setMissingGamesCount] = useState<number>(0);
+  const [detectedSeason, setDetectedSeason] = useState<string>('');
   const [isRefreshingMissing, setIsRefreshingMissing] = useState(false);
   const [refreshStatusMessage, setRefreshStatusMessage] = useState<string | null>(null);
   const [refreshCompletedSteps, setRefreshCompletedSteps] = useState<string[]>([]);
@@ -45,6 +46,7 @@ export function Home() {
         if (response.ok) {
           const data = await response.json();
           setMissingGamesCount(data.total_missing || 0);
+          if (data.season) setDetectedSeason(data.season);
         }
       } catch (err) {
         console.error('Failed to fetch missing games count:', err);
@@ -149,6 +151,9 @@ export function Home() {
       nba_schedule: 'false',
       force_rebuild: 'false',
     });
+    if (detectedSeason) {
+      params.append('season', detectedSeason);
+    }
 
     const url = `${API_BASE_URL}/api/refresh/start?${params.toString()}`;
     const eventSource = new EventSource(url, { withCredentials: true });
