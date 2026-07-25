@@ -13,6 +13,7 @@ import { useLeague } from '../context/LeagueContext';
 import { useWaiverWire } from '../context/WaiverWireContext';
 import type { WaiverPlayer, LeagueInfo, TeamScheduleResponse } from '../types/api';
 import { formatLocalDate, parseLocalDate } from '../utils/dates';
+import { useLatestRequest } from '../hooks/useLatestRequest';
 import { getTrendColor, getColorClass } from '../utils/statColors';
 
 type SortField = 'index' | 'rank' | 'name' | 'status' | 'injury' | 'lastGame' | 'games' | 'aggGames' | 'trend' | 'minutes' | 
@@ -22,6 +23,7 @@ type SortDirection = 'asc' | 'desc';
 export function WaiverWire() {
   const { leagues, defaultLeagueKey } = useLeague();
   const { state, updateState, getTeamSchedule, setTeamSchedule: cacheTeamSchedule, isTeamScheduleStale } = useWaiverWire();
+  const { begin: beginWaiverRequest, isCurrent: isWaiverRequestCurrent } = useLatestRequest();
   const [leagueKey, setLeagueKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<{ id: number | null; name: string } | null>(null);
@@ -132,6 +134,7 @@ export function WaiverWire() {
       return;
     }
 
+    const token = beginWaiverRequest();
     setLoading(true);
     updateState({ error: null });
 
@@ -145,8 +148,10 @@ export function WaiverWire() {
         sortAscending: sortDirection === 'asc',
         refresh: true, // Always fetch fresh data from Yahoo
       });
+      if (!isWaiverRequestCurrent(token)) return;
       updateState({ waiverData: data, error: null });
     } catch (err: any) {
+      if (!isWaiverRequestCurrent(token)) return;
       let errorMessage = 'Failed to fetch waiver players. Please try again.';
       if (err.response?.status === 401) {
         errorMessage = 'Authentication required. Please log in again.';
@@ -159,9 +164,9 @@ export function WaiverWire() {
       }
       updateState({ error: errorMessage });
     } finally {
-      setLoading(false);
+      if (isWaiverRequestCurrent(token)) setLoading(false);
     }
-  }, [leagueKey, count, lookback, aggMode, sortField, sortDirection, updateState]);
+  }, [leagueKey, count, lookback, aggMode, sortField, sortDirection, updateState, beginWaiverRequest, isWaiverRequestCurrent]);
 
   // Auto-fetch players on first load if no data exists
   useEffect(() => {
@@ -199,6 +204,7 @@ export function WaiverWire() {
     // Refetch with new sort parameters
     if (!leagueKey.trim()) return;
 
+    const token = beginWaiverRequest();
     setLoading(true);
     updateState({ error: null });
 
@@ -212,8 +218,10 @@ export function WaiverWire() {
         sortAscending: newDirection === 'asc',
         refresh: false, // Don't force refresh when sorting
       });
+      if (!isWaiverRequestCurrent(token)) return;
       updateState({ waiverData: data, error: null });
     } catch (err: any) {
+      if (!isWaiverRequestCurrent(token)) return;
       let errorMessage = 'Failed to fetch waiver players. Please try again.';
       if (err.response?.status === 401) {
         errorMessage = 'Authentication required. Please log in again.';
@@ -226,7 +234,7 @@ export function WaiverWire() {
       }
       updateState({ error: errorMessage });
     } finally {
-      setLoading(false);
+      if (isWaiverRequestCurrent(token)) setLoading(false);
     }
   };
 

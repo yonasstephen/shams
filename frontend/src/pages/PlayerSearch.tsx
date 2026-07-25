@@ -10,6 +10,7 @@ import { Dropdown } from '../components/Dropdown';
 import { StatCell } from '../components/StatCell';
 import { api } from '../services/api';
 import { useLeague } from '../context/LeagueContext';
+import { useLatestRequest } from '../hooks/useLatestRequest';
 import type { PlayerStatsResponse, PlayerSuggestion, RankedPlayer } from '../types/api';
 import { getTrendColor, getColorClass } from '../utils/statColors';
 
@@ -18,6 +19,7 @@ type RankingMode = 'yahoo' | '9cat';
 
 export function PlayerSearch() {
   const { defaultLeagueKey } = useLeague();
+  const { begin: beginRankedRequest, isCurrent: isRankedRequestCurrent } = useLatestRequest();
   const [searchName, setSearchName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +103,7 @@ export function PlayerSearch() {
     const fetchRankedPlayers = async () => {
       if (!defaultLeagueKey) return;
 
+      const token = beginRankedRequest();
       setRankedLoading(true);
       setRankedError(null);
 
@@ -112,15 +115,17 @@ export function PlayerSearch() {
           aggMode,
           rankingMode,
         });
+        if (!isRankedRequestCurrent(token)) return;
         setRankedPlayers(result.players);
       } catch (err: any) {
+        if (!isRankedRequestCurrent(token)) return;
         if (err.response?.status === 404) {
           setRankedError('No rankings found. Rankings need to be refreshed.');
         } else {
           setRankedError(err.response?.data?.detail || 'Failed to fetch ranked players.');
         }
       } finally {
-        setRankedLoading(false);
+        if (isRankedRequestCurrent(token)) setRankedLoading(false);
       }
     };
 

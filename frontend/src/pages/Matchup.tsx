@@ -11,6 +11,7 @@ import { Dropdown } from '../components/Dropdown';
 import { api } from '../services/api';
 import { useLeague } from '../context/LeagueContext';
 import { useMatchup } from '../context/MatchupContext';
+import { useLatestRequest } from '../hooks/useLatestRequest';
 import type { PlayerContribution, LeagueInfo, AllMatchupsResponse } from '../types/api';
 import { getMarginColorClass } from '../utils/statColors';
 
@@ -20,6 +21,8 @@ type SortDirection = 'asc' | 'desc';
 export function Matchup() {
   const { leagues, defaultLeagueKey, currentWeek, totalWeeks } = useLeague();
   const { state, updateState } = useMatchup();
+  const { begin: beginAllMatchups, isCurrent: isAllMatchupsCurrent } = useLatestRequest();
+  const { begin: beginProjection, isCurrent: isProjectionCurrent } = useLatestRequest();
   const [leagueKey, setLeagueKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<{ id: number; name: string } | null>(null);
@@ -85,19 +88,22 @@ export function Matchup() {
     if (!leagueKey || !defaultLeagueKey) return;
     
     const fetchAllMatchups = async () => {
+      const token = beginAllMatchups();
       setLoadingMatchups(true);
       // Clear selected team when starting to fetch new matchups
       setSelectedTeamKey('');
       try {
         const data = await api.getAllMatchups(leagueKey.trim(), week, projectionMode);
+        if (!isAllMatchupsCurrent(token)) return;
         setAllMatchups(data);
-        
+
         // Always reset to user's team when league changes
         setSelectedTeamKey(data.user_team_key);
       } catch (err: any) {
+        if (!isAllMatchupsCurrent(token)) return;
         console.error('Failed to fetch all matchups:', err);
       } finally {
-        setLoadingMatchups(false);
+        if (isAllMatchupsCurrent(token)) setLoadingMatchups(false);
       }
     };
     
@@ -142,6 +148,7 @@ export function Matchup() {
       return;
     }
 
+    const token = beginProjection();
     setLoading(true);
     updateState({ error: null });
     // Don't clear matchupData here - let the overlay show over existing data
@@ -155,8 +162,10 @@ export function Matchup() {
         optimizeUserRoster,
         optimizeOpponentRoster
       );
+      if (!isProjectionCurrent(token)) return;
       updateState({ matchupData: data, error: null });
     } catch (err: any) {
+      if (!isProjectionCurrent(token)) return;
       let errorMessage = 'Failed to fetch matchup projection. Please try again.';
       if (err.response?.status === 401) {
         errorMessage = 'Authentication required. Please log in again.';
@@ -169,7 +178,7 @@ export function Matchup() {
       }
       updateState({ error: errorMessage });
     } finally {
-      setLoading(false);
+      if (isProjectionCurrent(token)) setLoading(false);
     }
   };
 

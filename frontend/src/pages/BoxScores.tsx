@@ -11,10 +11,12 @@ import { TopPerformersPanel } from '../components/TopPerformersPanel';
 import { useLeague } from '../context/LeagueContext';
 import { api } from '../services/api';
 import { todayLocalISO } from '../utils/dates';
+import { useLatestRequest } from '../hooks/useLatestRequest';
 import type { BoxScoreDate, GameBoxScore } from '../types/api';
 
 export function BoxScores() {
   const { isLoading: isLeagueLoading } = useLeague();
+  const { begin: beginGamesRequest, isCurrent: isGamesRequestCurrent } = useLatestRequest();
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [allDates, setAllDates] = useState<BoxScoreDate[]>([]);
   const [games, setGames] = useState<GameBoxScore[]>([]);
@@ -61,17 +63,20 @@ export function BoxScores() {
     if (!selectedDate) return;
 
     const fetchGames = async () => {
+      const token = beginGamesRequest();
       try {
         setIsLoadingGames(true);
         setError(null);
         const gamesData = await api.getGamesForDate(selectedDate);
+        if (!isGamesRequestCurrent(token)) return;
         setGames(gamesData);
       } catch (err: any) {
+        if (!isGamesRequestCurrent(token)) return;
         console.error('Failed to fetch games:', err);
         setError(err.response?.data?.detail || 'Failed to load games');
         setGames([]);
       } finally {
-        setIsLoadingGames(false);
+        if (isGamesRequestCurrent(token)) setIsLoadingGames(false);
       }
     };
 
