@@ -774,7 +774,7 @@ export function WaiverWire() {
                       ['INJ', 'O', 'OUT', 'IR', 'SUSP', 'PUP', 'NA'].includes(player.injury_status.toUpperCase());
 
                     return (
-                      <tr key={idx} className={`group transition-colors ${
+                      <tr key={player.player_id ?? player.name} className={`group transition-colors ${
                         hasInjury ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-neutral-50'
                       }`}>
                         <td className={`sticky left-0 z-10 w-12 min-w-[3rem] px-2 py-1.5 text-center text-xs text-gray-500 transition-colors ${
