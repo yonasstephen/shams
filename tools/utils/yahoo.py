@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
+from collections import OrderedDict
 from datetime import date
-from functools import lru_cache
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -23,12 +24,15 @@ DEFAULT_TOKEN_DIR = Path(
 ).expanduser()
 WAIVER_BATCH_SIZE = int(os.environ.get("WAIVER_BATCH_SIZE", 25))  # Yahoo API caps at 25
 
-# Registry of live query objects so their underlying OAuth2 HTTP sessions can be
-# closed on cache clear. lru_cache does not expose its stored values, so we track
-# every created query here and reclaim its socket/connection pool explicitly.
-# Without this, each token refresh (~hourly) leaks a requests.Session, growing the
-# process's open file descriptors and memory until an OOM/FD-exhaustion crash.
-_active_queries: "set" = set()
+# Bounded LRU cache of query wrappers, keyed by (game_code, league_id, league_key).
+# Managed explicitly rather than with functools.lru_cache so that evicting an entry
+# closes its underlying OAuth2 requests.Session. functools.lru_cache silently discards
+# evicted values without closing them, leaking a socket/connection pool on every
+# eviction (a long-running process serving >8 distinct leagues, or repeated cache
+# clears on token refresh, would grow open FDs/memory until an OOM/FD-exhaustion crash).
+_QUERY_CACHE_MAXSIZE = 8
+_query_cache: "OrderedDict[tuple, TokenRefreshQueryWrapper]" = OrderedDict()
+_query_cache_lock = threading.Lock()
 
 
 def _close_query_session(query) -> None:
@@ -230,20 +234,20 @@ def clear_query_cache():
     This should be called when tokens are refreshed to force recreation
     of query objects with new OAuth credentials. Closes each query's
     underlying OAuth2 HTTP session first so sockets/memory are reclaimed
-    instead of leaking on every refresh.
+    instead of leaking.
     """
-    for query in list(_active_queries):
-        _close_query_session(query)
-    _active_queries.clear()
-    _load_query.cache_clear()
+    with _query_cache_lock:
+        for query in _query_cache.values():
+            _close_query_session(query)
+        _query_cache.clear()
 
 
-@lru_cache(maxsize=8)
-def _load_query(  # noqa: PLR0913
+def _build_query_wrapper(
     game_code: str = "nba",
     league_id: Optional[str] = None,
     league_key: Optional[str] = None,
 ) -> TokenRefreshQueryWrapper:
+    """Construct a fresh query wrapper (opens a new OAuth2 session)."""
     load_dotenv()
     consumer_key = os.environ.get("YAHOO_CONSUMER_KEY")
     consumer_secret = os.environ.get("YAHOO_CONSUMER_SECRET")
@@ -279,11 +283,31 @@ def _load_query(  # noqa: PLR0913
         query.league_key = league_key
 
     # Wrap the query with automatic token refresh handling
-    wrapper = TokenRefreshQueryWrapper(query)
-    # Track for session cleanup on clear_query_cache(). Runs only on cache miss
-    # (new query creation), which is exactly when a new session is opened.
-    _active_queries.add(wrapper)
-    return wrapper
+    return TokenRefreshQueryWrapper(query)
+
+
+def _load_query(  # noqa: PLR0913
+    game_code: str = "nba",
+    league_id: Optional[str] = None,
+    league_key: Optional[str] = None,
+) -> TokenRefreshQueryWrapper:
+    key = (game_code, league_id, league_key)
+    with _query_cache_lock:
+        cached = _query_cache.get(key)
+        if cached is not None:
+            _query_cache.move_to_end(key)
+            return cached
+
+        wrapper = _build_query_wrapper(game_code, league_id, league_key)
+        _query_cache[key] = wrapper
+
+        # Evict least-recently-used entries beyond the cap, closing each evicted
+        # wrapper's OAuth2 session so it does not leak.
+        while len(_query_cache) > _QUERY_CACHE_MAXSIZE:
+            _, evicted = _query_cache.popitem(last=False)
+            _close_query_session(evicted)
+
+        return wrapper
 
 
 def fetch_user_leagues() -> Sequence[dict]:
