@@ -2,7 +2,7 @@
  * Matchup projection page
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Layout } from '../components/Layout';
 import { StatCell } from '../components/StatCell';
 import { RemainingDaysProjection } from '../components/RemainingDaysProjection';
@@ -63,21 +63,24 @@ export function Matchup() {
     opponentProjectionSortDirection
   } = state;
 
+  const appliedLeagueKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
-    // Use default league key from context
-    if (defaultLeagueKey) {
-      setLeagueKey(defaultLeagueKey);
-      // Clear matchup data and selected team when league changes
-      updateState({ matchupData: null, error: null });
-      setSelectedTeamKey('');
-      setAllMatchups(null);
-    } else if (leagues.length > 0) {
-      setLeagueKey(leagues[0].league_key);
-      // Clear matchup data and selected team when league changes
-      updateState({ matchupData: null, error: null });
-      setSelectedTeamKey('');
-      setAllMatchups(null);
-    }
+    // Resolve the active league key (default, else first available).
+    const nextLeagueKey = defaultLeagueKey || (leagues.length > 0 ? leagues[0].league_key : '');
+    if (!nextLeagueKey) return;
+
+    // Only wipe loaded matchup data when the selected league actually changes.
+    // `leagues` gets a new array reference whenever LeagueProvider refreshes, so
+    // keying the reset off the resolved league key (via a ref) prevents a
+    // background refresh from clearing the user's loaded matchup.
+    if (appliedLeagueKeyRef.current === nextLeagueKey) return;
+    appliedLeagueKeyRef.current = nextLeagueKey;
+
+    setLeagueKey(nextLeagueKey);
+    updateState({ matchupData: null, error: null });
+    setSelectedTeamKey('');
+    setAllMatchups(null);
   }, [defaultLeagueKey, leagues]);
 
   // Fetch all matchups when league/week/projection mode changes
