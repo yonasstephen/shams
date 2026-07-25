@@ -4,6 +4,7 @@
 
 import { createContext, useContext, useState, ReactNode } from 'react';
 import type { WaiverResponse, TeamScheduleResponse } from '../types/api';
+import { formatLocalDate } from '../utils/dates';
 
 type SortField = 'index' | 'rank' | 'name' | 'status' | 'injury' | 'lastGame' | 'games' | 'aggGames' | 'trend' | 'minutes' | 
   'fga' | 'fgm' | 'fg_pct' | 'fta' | 'ftm' | 'ft_pct' | 'threes' | 'points' | 'rebounds' | 'assists' | 'steals' | 'blocks' | 'turnovers' | 'usage_pct';
@@ -50,7 +51,7 @@ const WaiverWireContext = createContext<WaiverWireContextType | undefined>(undef
 const getDateDaysAgo = (days: number): string => {
   const date = new Date();
   date.setDate(date.getDate() - days);
-  return date.toISOString().split('T')[0];
+  return formatLocalDate(date);
 };
 
 const defaultState: WaiverWireState = {

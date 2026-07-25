@@ -10,6 +10,7 @@ import { PlayerStatsModal } from '../components/PlayerStatsModal';
 import { TopPerformersPanel } from '../components/TopPerformersPanel';
 import { useLeague } from '../context/LeagueContext';
 import { api } from '../services/api';
+import { todayLocalISO } from '../utils/dates';
 import type { BoxScoreDate, GameBoxScore } from '../types/api';
 
 export function BoxScores() {
@@ -37,7 +38,7 @@ export function BoxScores() {
         setAllDates(dates);
         
         // Always default to today's date
-        const today = new Date().toISOString().split('T')[0];
+        const today = todayLocalISO();
         setSelectedDate(today);
         
         // If no dates at all, show error message

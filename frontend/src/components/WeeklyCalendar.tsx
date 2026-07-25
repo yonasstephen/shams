@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import type { BoxScoreDate } from '../types/api';
+import { formatLocalDate, parseLocalDate } from '../utils/dates';
 
 interface WeeklyCalendarProps {
   selectedDate: string;
@@ -12,7 +13,7 @@ interface WeeklyCalendarProps {
 }
 
 export function WeeklyCalendar({ selectedDate, onDateSelect, allDates }: WeeklyCalendarProps) {
-  const [weekStart, setWeekStart] = useState<Date>(new Date(selectedDate));
+  const [weekStart, setWeekStart] = useState<Date>(parseLocalDate(selectedDate));
 
   // Create map of date -> game count for quick lookup
   const dateGameCounts = new Map<string, number>();
@@ -20,7 +21,7 @@ export function WeeklyCalendar({ selectedDate, onDateSelect, allDates }: WeeklyC
 
   // Calculate the start of the week centered on selected date
   useEffect(() => {
-    const selected = new Date(selectedDate);
+    const selected = parseLocalDate(selectedDate);
     // Go back 3 days to center the selected date
     const start = new Date(selected);
     start.setDate(start.getDate() - 3);
@@ -36,7 +37,7 @@ export function WeeklyCalendar({ selectedDate, onDateSelect, allDates }: WeeklyC
   }
 
   const formatDate = (date: Date): string => {
-    return date.toISOString().split('T')[0];
+    return formatLocalDate(date);
   };
 
   const formatDayOfWeek = (date: Date): string => {
