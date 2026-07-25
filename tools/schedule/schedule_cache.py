@@ -152,8 +152,11 @@ def build_player_team_index_from_boxscores(season: str) -> int:
             if not player_id or not games:
                 continue
 
-            # Get most recent game to find current team
-            latest_game = games[-1]  # Games are sorted by date
+            # Get most recent game to find current team. Select by max date
+            # rather than assuming games[-1] is newest: update_player_index appends
+            # in fetch order, so an out-of-order backfill could otherwise map a
+            # traded player to the wrong (older) team.
+            latest_game = max(games, key=lambda g: g.get("date", ""))
 
             # Use TEAM_ID directly (it's already in the data)
             team_id = latest_game.get("TEAM_ID")
