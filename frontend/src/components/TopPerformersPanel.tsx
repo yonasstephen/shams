@@ -226,7 +226,7 @@ export function TopPerformersPanel({ games, onPlayerClick, compact = false }: To
       setIsLoading(true);
       
       // Use setTimeout to allow UI to update with loading state
-      setTimeout(() => {
+      return setTimeout(() => {
         const result: Record<string, TopPerformer[]> = {};
 
         // Collect all players from all games
@@ -346,7 +346,11 @@ export function TopPerformersPanel({ games, onPlayerClick, compact = false }: To
       }, 0);
     };
 
-    calculateTopPerformers();
+    // Clear a pending computation when games change again or on unmount, so
+    // stacked timers don't repeat the heavy z-score work and no setState fires
+    // after unmount.
+    const timerId = calculateTopPerformers();
+    return () => clearTimeout(timerId);
   }, [games]);
 
   const activeCategory = STAT_CATEGORIES.find((cat) => cat.id === activeTab);
