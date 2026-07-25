@@ -62,7 +62,7 @@ def _player_stats_to_model(stats) -> Optional[PlayerStats]:
 
 def _compute_waiver_trends(
     league_key: str,
-    _refresh_cache: bool = False,
+    refresh_cache: bool = False,
     display_count: int = 50,
     stats_mode: str = "last",
     agg_mode: str = "avg",
@@ -96,15 +96,25 @@ def _compute_waiver_trends(
     if needs_refresh:
         result = boxscore_refresh.smart_refresh(season)
 
-    # Always fetch fresh players from Yahoo
-    # Frontend context handles caching for navigation purposes
-    players = fetch_free_agents_and_waivers(league_key)
+    # Load from cache unless a refresh is requested (mirrors the CLI in
+    # commands/waiver_command.py). Previously this always hit Yahoo's paginated
+    # free-agent + waiver API — dozens of calls plus full per-player enrichment —
+    # on every request, ignoring the refresh flag entirely.
+    players = None
+    if not refresh_cache:
+        players = waiver_cache.load_cached_players(league_key)
 
-    # Ensure all players are dictionaries
-    if not all(isinstance(p, dict) for p in players):
-        raise ValueError("Some players were not properly serialized to dictionaries")
+    if players is None:
+        players = fetch_free_agents_and_waivers(league_key)
 
-    waiver_cache.save_cached_players(league_key, players)
+        # Ensure all players are dictionaries
+        if not all(isinstance(p, dict) for p in players):
+            raise ValueError(
+                "Some players were not properly serialized to dictionaries"
+            )
+
+        waiver_cache.save_cached_players(league_key, players)
+
     cache_metadata = waiver_cache.get_cache_metadata(league_key)
 
     # Get current week date range for games calculation
@@ -373,7 +383,7 @@ def get_waiver_players(
     try:
         players_data, current_week, cache_metadata = _compute_waiver_trends(
             league_key=league_key,
-            _refresh_cache=refresh,
+            refresh_cache=refresh,
             display_count=count,
             stats_mode=stats_mode,
             agg_mode=agg_mode,
