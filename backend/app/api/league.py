@@ -8,8 +8,9 @@ from typing import List
 logger = logging.getLogger(__name__)
 
 from app.api.config import load_league_settings, save_league_settings
+from app.auth import yahoo_web
 from app.models import TeamScheduleDay, TeamScheduleInfo, TeamScheduleResponse
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from nba_api.stats.static import teams
 from pydantic import BaseModel
 
@@ -23,7 +24,9 @@ from tools.utils.yahoo import (
     fetch_user_team_key,
 )
 
-router = APIRouter()
+# These endpoints trigger Yahoo Fantasy API calls with the owner's shared token,
+# so every route requires a valid session.
+router = APIRouter(dependencies=[Depends(yahoo_web.get_session_from_request)])
 
 # Cache expiration time in hours
 CACHE_EXPIRATION_HOURS = 1

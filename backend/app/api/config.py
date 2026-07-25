@@ -6,8 +6,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+
+from app.auth import yahoo_web
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
@@ -22,7 +24,10 @@ from tools.schedule.game_type_settings import (
     save_settings,
 )
 
-router = APIRouter()
+# These endpoints read and mutate the owner's local config and cache (including
+# absolute filesystem paths via /cache-debug) and trigger Yahoo-backed calls using
+# the single shared token, so every route requires a valid session.
+router = APIRouter(dependencies=[Depends(yahoo_web.get_session_from_request)])
 
 # Use the same config file as the CLI
 CONFIG_FILE = Path.home() / ".shams" / "config.json"
