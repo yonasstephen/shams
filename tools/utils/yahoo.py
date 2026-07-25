@@ -23,6 +23,33 @@ DEFAULT_TOKEN_DIR = Path(
 ).expanduser()
 WAIVER_BATCH_SIZE = int(os.environ.get("WAIVER_BATCH_SIZE", 25))  # Yahoo API caps at 25
 
+# Registry of live query objects so their underlying OAuth2 HTTP sessions can be
+# closed on cache clear. lru_cache does not expose its stored values, so we track
+# every created query here and reclaim its socket/connection pool explicitly.
+# Without this, each token refresh (~hourly) leaks a requests.Session, growing the
+# process's open file descriptors and memory until an OOM/FD-exhaustion crash.
+_active_queries: "set" = set()
+
+
+def _close_query_session(query) -> None:
+    """Close the underlying requests session of a query object. Never raises.
+
+    Accepts either a TokenRefreshQueryWrapper or a raw YahooFantasySportsQuery.
+    The real session lives at ``query.oauth.session`` (yfpy wraps a
+    yahoo_oauth.OAuth2 whose ``session`` is a requests.Session).
+    """
+    if query is None:
+        return
+    try:
+        # Unwrap the wrapper to reach the raw yfpy query. Access the private
+        # attribute directly to avoid __getattr__'s retry machinery.
+        base = query.__dict__.get("_query", query) if hasattr(query, "__dict__") else query
+        session = getattr(getattr(base, "oauth", None), "session", None)
+        if session is not None:
+            session.close()
+    except Exception as close_err:  # noqa: BLE001 - cleanup must never raise
+        logger.debug("Failed to close Yahoo query session: %s", close_err)
+
 
 class TokenRefreshQueryWrapper:
     """Wrapper around YahooFantasySportsQuery that automatically handles token expiration.
@@ -169,6 +196,10 @@ class TokenRefreshQueryWrapper:
                         raise YahooAuthError(
                             f"Token refresh failed: {str(retry_exc)}"
                         ) from retry_exc
+                    finally:
+                        # This query is intentionally uncached; close its session
+                        # so it doesn't leak on every token expiry.
+                        _close_query_session(fresh_base_query)
                 # Not a token/auth error — re-raise as the original Yahoo exception
                 # so callers receive a 500-level error rather than a 401 logout
                 raise
@@ -197,8 +228,13 @@ def clear_query_cache():
     """Clear the cached YahooFantasySportsQuery objects.
 
     This should be called when tokens are refreshed to force recreation
-    of query objects with new OAuth credentials.
+    of query objects with new OAuth credentials. Closes each query's
+    underlying OAuth2 HTTP session first so sockets/memory are reclaimed
+    instead of leaking on every refresh.
     """
+    for query in list(_active_queries):
+        _close_query_session(query)
+    _active_queries.clear()
     _load_query.cache_clear()
 
 
@@ -243,7 +279,11 @@ def _load_query(  # noqa: PLR0913
         query.league_key = league_key
 
     # Wrap the query with automatic token refresh handling
-    return TokenRefreshQueryWrapper(query)
+    wrapper = TokenRefreshQueryWrapper(query)
+    # Track for session cleanup on clear_query_cache(). Runs only on cache miss
+    # (new query creation), which is exactly when a new session is opened.
+    _active_queries.add(wrapper)
+    return wrapper
 
 
 def fetch_user_leagues() -> Sequence[dict]:
