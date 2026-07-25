@@ -93,11 +93,12 @@ export function Home() {
       try {
         // Get all available dates
         const dates = await api.getBoxScoreDates();
-        
-        // Find the most recent date with games (before or equal to today)
-        // that actually has box score data
-        for (const dateInfo of dates) {
-          if (dateInfo.date <= excludeDate || dateInfo.date === excludeDate) {
+
+        // Scan newest-first (don't rely on the API's ordering) for the most recent
+        // date at or before today that actually has box score data.
+        const datesNewestFirst = [...dates].sort((a, b) => b.date.localeCompare(a.date));
+        for (const dateInfo of datesNewestFirst) {
+          if (dateInfo.date <= excludeDate) {
             const dateGames = await api.getGamesForDate(dateInfo.date);
             const gamesWithBoxScores = dateGames.filter(g => !g.is_scheduled);
             
@@ -184,9 +185,10 @@ export function Home() {
             setGames(todayWithBoxScores);
             setDisplayDate(today);
           } else {
-            // Fetch the most recent available date
+            // Fetch the most recent available date (scan newest-first)
             const dates = await api.getBoxScoreDates();
-            for (const dateInfo of dates) {
+            const datesNewestFirst = [...dates].sort((a, b) => b.date.localeCompare(a.date));
+            for (const dateInfo of datesNewestFirst) {
               if (dateInfo.date <= today) {
                 const dateGames = await api.getGamesForDate(dateInfo.date);
                 const gamesWithBoxScores = dateGames.filter(g => !g.is_scheduled);
