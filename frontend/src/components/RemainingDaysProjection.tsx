@@ -5,6 +5,7 @@
 
 import { StatCell } from './StatCell';
 import type { PlayerContribution } from '../types/api';
+import { formatLocalDate, parseLocalDate } from '../utils/dates';
 
 type SortField = 'name' | 'games' | string; // string for stat IDs
 type SortDirection = 'asc' | 'desc';
@@ -39,17 +40,19 @@ export function RemainingDaysProjection({
   sortDirection,
   onSort,
 }: RemainingDaysProjectionProps) {
-  // Parse date range and filter to remaining dates (today onwards)
-  const startDate = new Date(week_start);
-  const endDate = new Date(week_end);
+  // Parse date range and filter to remaining dates (today onwards).
+  // Parse as local dates so the final day of the week isn't dropped for
+  // viewers west of UTC (UTC-midnight endDate would compare < local today).
+  const startDate = parseLocalDate(week_start);
+  const endDate = parseLocalDate(week_end);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const remainingDates: string[] = [];
   const current = new Date(Math.max(startDate.getTime(), today.getTime()));
-  
+
   while (current <= endDate) {
-    remainingDates.push(current.toISOString().split('T')[0]);
+    remainingDates.push(formatLocalDate(current));
     current.setDate(current.getDate() + 1);
   }
 
@@ -103,7 +106,7 @@ export function RemainingDaysProjection({
 
   // Format date header
   const formatDateHeader = (dateStr: string): string => {
-    const date = new Date(dateStr + 'T00:00:00');
+    const date = parseLocalDate(dateStr);
     const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
     const month = date.getMonth() + 1;
     const day = date.getDate();

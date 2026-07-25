@@ -10,6 +10,7 @@ import { GameTypeSettings } from '../components/GameTypeSettings';
 import { TopPerformersPanel } from '../components/TopPerformersPanel';
 import { PlayerStatsModal } from '../components/PlayerStatsModal';
 import { api } from '../services/api';
+import { parseLocalDate, todayLocalISO } from '../utils/dates';
 import type { GameBoxScore } from '../types/api';
 
 // Get API URL from runtime config
@@ -64,7 +65,7 @@ export function Home() {
       try {
         setIsLoadingGames(true);
         setRefreshError(null);
-        const today = new Date().toISOString().split('T')[0];
+        const today = todayLocalISO();
 
         // First, try to get today's games
         const todayGames = await api.getGamesForDate(today);
@@ -176,7 +177,7 @@ export function Home() {
           setRefreshTrigger(prev => prev + 1); // Trigger RefreshPanel to sync
           
           // Refetch the latest box scores to update the display
-          const today = new Date().toISOString().split('T')[0];
+          const today = todayLocalISO();
           const todayGames = await api.getGamesForDate(today);
           const todayWithBoxScores = todayGames.filter(g => !g.is_scheduled);
           
@@ -221,7 +222,7 @@ export function Home() {
 
   const formatDisplayDate = (dateStr: string): string => {
     if (!dateStr) return '';
-    const date = new Date(dateStr + 'T00:00:00');
+    const date = parseLocalDate(dateStr);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const yesterday = new Date(today);

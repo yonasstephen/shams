@@ -12,6 +12,7 @@ import { api } from '../services/api';
 import { useLeague } from '../context/LeagueContext';
 import { useWaiverWire } from '../context/WaiverWireContext';
 import type { WaiverPlayer, LeagueInfo, TeamScheduleResponse } from '../types/api';
+import { formatLocalDate, parseLocalDate } from '../utils/dates';
 import { getTrendColor, getColorClass } from '../utils/statColors';
 
 type SortField = 'index' | 'rank' | 'name' | 'status' | 'injury' | 'lastGame' | 'games' | 'aggGames' | 'trend' | 'minutes' | 
@@ -39,7 +40,7 @@ export function WaiverWire() {
   const getDefaultCutoff = () => {
     const date = new Date();
     date.setDate(date.getDate() - 7);
-    return date.toISOString().split('T')[0];
+    return formatLocalDate(date);
   };
   
   const effectiveCutoff = lastGameCutoff ?? getDefaultCutoff();
@@ -748,8 +749,9 @@ export function WaiverWire() {
                     // Calculate days since last game and apply color
                     let lastGameColor = 'text-gray-600';
                     if (player.last_game_date) {
-                      const lastGameDate = new Date(player.last_game_date);
+                      const lastGameDate = parseLocalDate(player.last_game_date);
                       const today = new Date();
+                      today.setHours(0, 0, 0, 0);
                       const daysDiff = Math.floor((today.getTime() - lastGameDate.getTime()) / (1000 * 60 * 60 * 24));
                       
                       if (daysDiff > 7) {
