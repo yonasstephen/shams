@@ -529,6 +529,100 @@ class TestRosterContributionsLogic:
                 assert player_names["nba.p.12345"] == "Test Player"
 
     @pytest.mark.integration
+    def test_aggregate_current_week_includes_today_when_boxscore_cached(self):
+        """Regression: a game that finished TODAY must count toward current-week totals
+        when its boxscore is cached.
+
+        Previously the current-week cutoff was 'yesterday' while the remaining-games
+        projection excluded today whenever a boxscore existed, so a game completed today
+        was dropped from BOTH totals (double-exclusion)."""
+        from datetime import date
+
+        from tools.matchup import matchup_projection
+
+        class _FixedDate(date):
+            @classmethod
+            def today(cls):
+                return date(2024, 11, 6)
+
+        roster = {
+            "2024-11-05": [
+                {
+                    "player_key": "nba.p.12345",
+                    "name": {"full": "Test Player"},
+                    "selected_position": {"position": "PG"},
+                }
+            ],
+            "2024-11-06": [
+                {
+                    "player_key": "nba.p.12345",
+                    "name": {"full": "Test Player"},
+                    "selected_position": {"position": "PG"},
+                }
+            ],
+        }
+
+        stat_meta = [
+            {
+                "stat_id": "12",
+                "display_name": "PTS",
+                "name": "Points",
+                "is_only_display_stat": 0,
+            },
+        ]
+
+        week_start = date(2024, 11, 4)
+        week_end = date(2024, 11, 10)
+
+        # Both games are already in the cache (yesterday's and today's completed game).
+        all_games = [
+            {"date": "2024-11-05", "PTS": 25.0, "Points": 25.0,
+             "FGM": 10, "FGA": 20, "FTM": 5, "FTA": 6},
+            {"date": "2024-11-06", "PTS": 20.0, "Points": 20.0,
+             "FGM": 8, "FGA": 15, "FTM": 4, "FTA": 4},
+        ]
+
+        def _fake_fetch(_nba_id, _season, start, end):
+            # Mirror the cache: only return games within the requested [start, end] window.
+            return [
+                g for g in all_games
+                if start.isoformat() <= g["date"] <= end.isoformat()
+            ]
+
+        with patch("tools.matchup.matchup_projection.date", _FixedDate):
+            with patch(
+                "tools.matchup.matchup_projection.player_fetcher.player_id_lookup",
+                return_value=203507,
+            ):
+                with patch(
+                    "tools.matchup.matchup_projection.player_fetcher.fetch_player_stats_from_cache",
+                    side_effect=_fake_fetch,
+                ) as mock_fetch:
+                    (
+                        contributions,
+                        _player_names,
+                        _player_shooting,
+                        _is_on_roster,
+                        games_played,
+                        _player_ids,
+                    ) = matchup_projection._aggregate_current_week_player_contributions(
+                        "test_league",
+                        roster,
+                        week_start,
+                        week_end,
+                        stat_meta,
+                        _season="2024-25",
+                    )
+
+        # The fetch window must extend through today, not stop at yesterday.
+        _nba_id, _season, _start, called_end = mock_fetch.call_args.args
+        assert called_end == date(2024, 11, 6)
+
+        # Both yesterday's and today's completed games are counted.
+        assert games_played["nba.p.12345"] == 2
+        assert contributions["nba.p.12345"]["12"] == 45.0  # 25 + 20
+
+    @pytest.mark.integration
     def test_aggregate_projected_contributions_excludes_today_with_boxscore(self):
         """Test that remaining projections exclude today if boxscore exists."""
         from datetime import date

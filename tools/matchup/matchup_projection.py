@@ -988,40 +988,14 @@ def _aggregate_current_week_player_contributions(
             player_ids,
         )
 
-    # If today is the first day of the week, only include completed games from yesterday
-    # (to avoid including late-night games from previous week that might be cached with today's date)
-    if today == week_start:
-        # Week just started, no games have been completed yet today
-        yesterday = today - timedelta(days=1)
-        if yesterday < week_start:
-            # Yesterday was before the week started, so no games yet
-            unique_players: Dict[str, dict] = {}
-            for players in roster.values():
-                for player in players:
-                    player_key = _player_key(player)
-                    if player_key and player_key not in unique_players:
-                        unique_players[player_key] = player
-
-            for player_key, player in unique_players.items():
-                player_names[player_key] = player.get("name", {}).get("full", "")
-                contributions[player_key] = {stat_id: 0.0 for stat_id in stat_ids}
-                player_shooting[player_key] = {}
-                is_on_roster_today[player_key] = player_key in todays_roster_players
-                player_ids[player_key] = None
-
-            return (
-                contributions,
-                player_names,
-                player_shooting,
-                is_on_roster_today,
-                {},
-                player_ids,
-            )
-
-    # Calculate the actual date range for games played this week
-    # Use yesterday as the cutoff to avoid late-night games cached with today's date
-    yesterday = today - timedelta(days=1)
-    fetch_end = min(week_end, yesterday)
+    # Include games from week_start through today. Today's game is counted only when its
+    # boxscore is already cached: fetch_player_stats_from_cache returns cached games only,
+    # so a game that hasn't been played (or saved) yet contributes nothing here. This is
+    # the same "boxscore exists for today" predicate the remaining-games projection uses to
+    # exclude today (see _aggregate_projected_contributions). Keeping the two sides on the
+    # identical predicate prevents a game that finished today from being dropped by both the
+    # current-week totals (old cutoff = yesterday) and the projection (double-exclusion).
+    fetch_end = min(week_end, today)
 
     # If we haven't had any completed days in the week yet, return zeros
     if fetch_end < week_start:
