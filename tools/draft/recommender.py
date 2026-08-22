@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Set
 
 from tools.draft import (
     adp,
+    projections,
     punt_detector,
     roster_fit,
     scarcity,
@@ -85,6 +86,8 @@ class DraftBoard:
     my_roster: List[DraftPlayer] = field(default_factory=list)
     positional_gaps: Dict[str, int] = field(default_factory=dict)
     schedule_available: bool = False
+    projection_source: str = ""
+    projected_players: int = 0
     picks_until_my_turn: Optional[int] = None
     is_my_turn: bool = False
     seconds_remaining: Optional[int] = None
@@ -156,13 +159,19 @@ def _to_recommendation(
     )
 
 
-def recommend(state: DraftState, pool_size: Optional[int] = None) -> DraftBoard:
+def recommend(
+    state: DraftState,
+    pool_size: Optional[int] = None,
+    source: Optional[projections.ProjectionSource] = None,
+) -> DraftBoard:
     """Analyze the draft and produce the panel's board.
 
     Args:
         state: Normalized draft state from the extension.
         pool_size: Reference pool size for valuation. Defaults to the number of
             players the league will actually draft.
+        source: Where projections come from. Defaults to our exported CSV when
+            one exists for the season, otherwise Yahoo's own numbers.
 
     Returns:
         The full :class:`DraftBoard`.
@@ -177,6 +186,13 @@ def recommend(state: DraftState, pool_size: Optional[int] = None) -> DraftBoard:
 
     if not state.players or not state.categories:
         return board
+
+    # Swap in projections before anything is valued, so scarcity, punts and the
+    # simulator all see the same numbers.
+    if source is None:
+        source = projections.load_source(state.season)
+    board.projected_players = projections.apply_source(state.players, source)
+    board.projection_source = source.name
 
     if pool_size is None:
         pool_size = max(state.num_teams * state.roster_size, 1)

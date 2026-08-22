@@ -44,6 +44,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+#: The last board computed, so the Shams web app can render a second-screen view
+#: of a draft the extension is driving. Analysis itself stays stateless — this is
+#: only a cache of the most recent result. Single-slot on purpose: this is a
+#: personal tool on localhost, and two concurrent drafts would overwrite each
+#: other rather than mixing.
+_LATEST: Dict[str, object] = {"board": None, "at": None}
+
 #: Set SHAMS_DRAFT_CAPTURE_DIR to record every payload the extension sends.
 #: The draft room's own CSP blocks the page from posting anywhere, so this is
 #: the practical way to collect real fixtures — run a mock draft with it set and
@@ -191,6 +198,8 @@ def _board_response(state: DraftState, board: DraftBoard, compute_ms: float) -> 
         ],
         positional_gaps=board.positional_gaps,
         schedule_available=board.schedule_available,
+        projection_source=board.projection_source,
+        projected_players=board.projected_players,
         picks_until_my_turn=board.picks_until_my_turn,
         is_my_turn=board.is_my_turn,
         seconds_remaining=board.seconds_remaining,
@@ -229,7 +238,28 @@ def analyze_draft_state(payload: DraftStateRequest) -> DraftBoardResponse:
     if compute_ms > 500:
         logger.warning("Slow draft analysis: %.0fms with %d players", compute_ms, len(state.players))
 
-    return _board_response(state, board, compute_ms)
+    response = _board_response(state, board, compute_ms)
+    _LATEST["board"] = response
+    _LATEST["at"] = datetime.now().isoformat()
+    return response
+
+
+@router.get("/latest", response_model=Optional[DraftBoardResponse])
+def latest_board():
+    """The most recently computed board.
+
+    Lets the Shams web app mirror a draft on a second screen without the
+    extension having to talk to it: the extension pushes to /state, the page
+    polls here. Returns null before the first push rather than 404, so a page
+    opened early shows "waiting" instead of an error.
+    """
+    return _LATEST["board"]
+
+
+@router.get("/latest/meta")
+def latest_meta() -> dict:
+    """When the cached board was computed, for staleness display."""
+    return {"at": _LATEST["at"], "has_board": _LATEST["board"] is not None}
 
 
 @router.get("/health")

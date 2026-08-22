@@ -26,7 +26,7 @@ import sys
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
 
-from tools.projections import history, marcel
+from tools.projections import history, marcel, residual
 from tools.projections.history import SeasonLine
 from tools.projections.marcel import ProjectedLine
 
@@ -183,10 +183,53 @@ def marcel_forecast(
     return {pid: dict(line.per_game) for pid, line in projections.items()}
 
 
+def _training_rows(
+    train_season: str,
+    train_priors: Sequence[str],
+    loaded: Dict[str, Dict[int, SeasonLine]],
+    experience: Dict[int, int],
+) -> List[tuple]:
+    """Build residual training data from a season the test never sees.
+
+    The baseline is fit on ``train_priors`` and scored against ``train_season``;
+    the gap between them is what the residual model learns. Using a season
+    earlier than the test season is what keeps the evaluation honest.
+    """
+    available = [s for s in train_priors if s in loaded]
+    if train_season not in loaded or not available:
+        return []
+
+    projections = marcel.project_season(
+        {s: loaded[s] for s in available}, available, experience=experience
+    )
+    actuals = loaded[train_season]
+
+    rows = []
+    for player_id, projected in projections.items():
+        actual = actuals.get(player_id)
+        if actual is None or actual.minutes < MIN_TEST_MINUTES:
+            continue
+        player_history = [loaded[s][player_id] for s in available if player_id in loaded[s]]
+        if not player_history:
+            continue
+        features = residual.build_features(
+            player_history, projected, experience.get(player_id)
+        )
+        residuals = {
+            stat: actual.per_game(stat) - projected.per_game.get(stat, 0.0)
+            for stat in residual.CORRECTED_STATS
+        }
+        rows.append((features, residuals))
+    return rows
+
+
 def run(
     test_season: str,
     prior_seasons: Sequence[str],
     use_experience: bool = True,
+    with_residual: bool = False,
+    train_season: Optional[str] = None,
+    train_priors: Optional[Sequence[str]] = None,
 ) -> List[Metrics]:
     """Backtest every forecast against a held-out season.
 
@@ -195,6 +238,10 @@ def run(
         prior_seasons: Seasons available to the model, most recent first. Must
             not include ``test_season``.
         use_experience: Apply the experience-based minutes adjustment.
+        with_residual: Also evaluate the residual-corrected model.
+        train_season: Season the residual model is fitted against. Must differ
+            from ``test_season``.
+        train_priors: Seasons the residual's baseline is built from.
 
     Returns:
         Metrics for each forecast.
@@ -202,7 +249,10 @@ def run(
     if test_season in prior_seasons:
         raise ValueError(f"{test_season} cannot be both training and test data")
 
-    loaded = history.load_seasons([test_season, *prior_seasons])
+    needed = [test_season, *prior_seasons]
+    if with_residual and train_season:
+        needed += [train_season, *(train_priors or [])]
+    loaded = history.load_seasons(sorted(set(needed)))
     actuals = loaded.get(test_season) or {}
     if not actuals:
         raise ValueError(f"No cached box scores for {test_season}")
@@ -235,6 +285,46 @@ def run(
             },
         ),
     ]
+
+    if with_residual and train_season:
+        if train_season == test_season:
+            raise ValueError("residual training season cannot be the test season")
+        training = _training_rows(
+            train_season, train_priors or [], loaded, experience
+        )
+        if not training:
+            raise ValueError("no residual training data available")
+
+        models = residual.train(training)
+        corrected: Dict[int, Dict[str, float]] = {}
+        for player_id, projected in projections.items():
+            player_history = [
+                loaded[s][player_id] for s in prior_seasons
+                if s in loaded and player_id in loaded[s]
+            ]
+            if not player_history:
+                continue
+            features = residual.build_features(
+                player_history, projected, experience.get(player_id)
+            )
+            # Correct a copy: the baseline result must stay comparable.
+            clone = marcel.ProjectedLine(
+                nba_id=projected.nba_id,
+                name=projected.name,
+                games=projected.games,
+                minutes_per_game=projected.minutes_per_game,
+                per_game=dict(projected.per_game),
+                seasons_used=list(projected.seasons_used),
+                experience=projected.experience,
+            )
+            corrected[player_id] = dict(
+                residual.apply_correction(clone, features, models).per_game
+            )
+
+        results.append(
+            evaluate(corrected, actuals, label=f"marcel+residual ({len(training)} rows)")
+        )
+
     return results
 
 
@@ -284,9 +374,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument(
         "--no-experience", action="store_true", help="Skip the experience adjustment"
     )
+    parser.add_argument(
+        "--residual", action="store_true", help="Also evaluate the residual model"
+    )
+    parser.add_argument("--train", help="Season the residual model is fitted against")
+    parser.add_argument(
+        "--train-priors", nargs="+", help="Seasons the residual's baseline uses"
+    )
     args = parser.parse_args(argv)
 
-    results = run(args.test, args.priors, use_experience=not args.no_experience)
+    results = run(
+        args.test,
+        args.priors,
+        use_experience=not args.no_experience,
+        with_residual=args.residual,
+        train_season=args.train,
+        train_priors=args.train_priors,
+    )
     print(f"\nBacktest: predicting {args.test} from {', '.join(args.priors)}\n")
     print(_format(results))
     return 0

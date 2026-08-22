@@ -21,6 +21,8 @@ import type {
   RankedPlayersResponse,
   GameTypeSettingsResponse,
   PlayerInsightsResponse,
+  DraftBoardResponse,
+  DraftLatestMeta,
 } from '../types/api';
 
 // Get API URL from runtime config (set at container startup) or build-time env var
@@ -260,6 +262,19 @@ class ApiClient {
     const response = await this.client.post('/api/config/game-type-settings', {
       settings,
     });
+    return response.data;
+  }
+  // ---- Live draft assistant ----
+
+  /** Most recent board computed from an extension push; null before any draft. */
+  async getLatestDraftBoard(): Promise<DraftBoardResponse | null> {
+    const response = await this.client.get<DraftBoardResponse | null>('/api/draft/latest');
+    return response.data;
+  }
+
+  /** When the cached board was computed, for staleness display. */
+  async getDraftMeta(): Promise<DraftLatestMeta> {
+    const response = await this.client.get<DraftLatestMeta>('/api/draft/latest/meta');
     return response.data;
   }
 }

@@ -117,6 +117,8 @@ class DraftBoardResponse(BaseModel):
     my_roster: List[RosterEntry] = Field(default_factory=list)
     positional_gaps: Dict[str, int] = Field(default_factory=dict)
     schedule_available: bool = False
+    projection_source: str = ""
+    projected_players: int = 0
     picks_until_my_turn: Optional[int] = None
     is_my_turn: bool = False
     seconds_remaining: Optional[int] = None

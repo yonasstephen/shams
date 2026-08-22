@@ -420,3 +420,95 @@ export interface PlayerInsightsResponse {
   substitution_timeline: SubstitutionEvent[];
 }
 
+
+// ---- Live draft assistant ----
+// Mirrors backend/app/models/draft.py. The extension pushes draft state to the
+// backend; this page reads the most recently computed board.
+
+export interface DraftRecommendation {
+  player_id: string;
+  name: string;
+  positions: string[];
+  nba_team: string;
+  injury: string;
+  total_value: number;
+  marginal_value: number;
+  score: number;
+  category_z: Record<string, number>;
+  standings_delta: number | null;
+  survival: number | null;
+  average_pick: number | null;
+  value_gap: number | null;
+  gap_label: string;
+  reason: string;
+}
+
+export interface DraftCategorySupply {
+  name: string;
+  display_name: string;
+  my_total: number;
+  my_rank: number;
+  league_mean: number;
+  deficit: number;
+  is_weakness: boolean;
+  elite_remaining: number;
+  starter_remaining: number;
+  best_available: number;
+  teams_below_mean: number;
+  crunch: number;
+  is_supply_crunch: boolean;
+  elite_surviving: number;
+  cliff_in_picks: number | null;
+  cliff_drop: number;
+  summary: string;
+}
+
+export interface DraftPuntVerdict {
+  categories: string[];
+  label: string;
+  category_wins: number;
+  baseline_wins: number;
+  gain: number;
+  is_recommended: boolean;
+}
+
+export interface DraftRosterEntry {
+  player_id: string;
+  name: string;
+  positions: string[];
+  nba_team: string;
+  injury: string;
+}
+
+export interface DraftBoardResponse {
+  headline: DraftRecommendation | null;
+  alternatives: DraftRecommendation[];
+  board: DraftRecommendation[];
+  supply: DraftCategorySupply[];
+  heat_map: Record<string, number>;
+  punt: DraftPuntVerdict | null;
+  punt_options: DraftPuntVerdict[];
+  my_roster: DraftRosterEntry[];
+  positional_gaps: Record<string, number>;
+  schedule_available: boolean;
+  projection_source: string;
+  projected_players: number;
+  picks_until_my_turn: number | null;
+  is_my_turn: boolean;
+  seconds_remaining: number | null;
+  current_pick: number;
+  projected_category_wins: number;
+  league_name: string;
+  is_mock: boolean;
+  num_teams: number;
+  total_rounds: number;
+  players_seen: number;
+  picks_seen: number;
+  compute_ms: number;
+  warnings: string[];
+}
+
+export interface DraftLatestMeta {
+  at: string | null;
+  has_board: boolean;
+}

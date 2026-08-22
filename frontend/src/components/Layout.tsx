@@ -41,6 +41,9 @@ export function Layout({ children }: LayoutProps) {
                   <Link to="/player" className={navLinkClass('/player')}>
                     Players
                   </Link>
+                  <Link to="/draft" className={navLinkClass('/draft')}>
+                    Draft
+                  </Link>
                   <Link to="/waiver" className={navLinkClass('/waiver')}>
                     Waiver Wire
                   </Link>
