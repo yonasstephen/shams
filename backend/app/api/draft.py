@@ -262,6 +262,29 @@ def latest_meta() -> dict:
     return {"at": _LATEST["at"], "has_board": _LATEST["board"] is not None}
 
 
+@router.get("/projections")
+def loaded_projections(season: str, limit: int = 200) -> dict:
+    """The projection CSV that would be used for a draft, with overrides applied.
+
+    For checking the numbers *before* draft day rather than discovering a bad
+    line at pick three. Reports which source is live, so it is obvious whether
+    the CSV was picked up or Yahoo's own projections are in play.
+    """
+    from tools.draft import projections as draft_projections
+    from tools.projections.export import csv_path, load_projections
+
+    rows = load_projections(season)
+    source = draft_projections.load_source(season)
+    return {
+        "season": season,
+        "source": source.name,
+        "path": str(csv_path(season)),
+        "exists": csv_path(season).exists(),
+        "total": len(rows),
+        "players": rows[: max(limit, 0)],
+    }
+
+
 @router.get("/health")
 def draft_health() -> dict:
     """Readiness check the extension can call before the draft starts.
