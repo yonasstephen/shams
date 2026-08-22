@@ -173,7 +173,7 @@ class TestExportRoundTrip:
         assert back[0]["fg_pct"] == pytest.approx(0.5)
 
     def test_missing_file_reads_empty(self, tmp_path: Path):
-        assert export.read_csv(tmp_path / "nope.csv") == []
+        assert not export.read_csv(tmp_path / "nope.csv")
 
     def test_confidence_rises_with_evidence(self):
         thin = ProjectedLine(nba_id=1, name="A", games=40, minutes_per_game=10.0)

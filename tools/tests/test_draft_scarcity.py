@@ -177,7 +177,7 @@ class TestScarcityBoard:
         assert assists.elite_remaining == 2
 
     def test_detects_my_weakness(self, setup):
-        state, board, _ = setup
+        _, board, _ = setup
         assists = next(s for s in board if s.name == "assists")
         assert assists.is_weakness is True
         assert assists.my_total < assists.league_mean

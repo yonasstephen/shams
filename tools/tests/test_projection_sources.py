@@ -171,7 +171,7 @@ class TestDisagreementsAndGaps:
     def test_agreement_is_not_flagged(self):
         projections = {1: self._projection("A B", 20.0)}
         consensus = {normalize_name("A B"): self._consensus("A B", 21.0)}
-        assert ensemble.find_disagreements(projections, consensus) == []
+        assert not ensemble.find_disagreements(projections, consensus)
 
     def test_flagged_sorted_by_gap(self):
         projections = {1: self._projection("A B", 10.0), 2: self._projection("C D", 5.0)}
@@ -202,4 +202,4 @@ class TestDisagreementsAndGaps:
     def test_rows_without_games_are_skipped(self):
         entry = self._consensus("Nobody", 5.0)
         entry.games = 0.0
-        assert ensemble.as_export_rows([entry]) == []
+        assert not ensemble.as_export_rows([entry])

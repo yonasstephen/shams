@@ -182,7 +182,7 @@ class TestDegenerateInputs:
         assert recommender.recommend(state).board == []
 
     def test_summarize_is_safe_on_an_empty_board(self):
-        assert recommender.summarize(recommender.DraftBoard()) == []
+        assert not recommender.summarize(recommender.DraftBoard())
 
     def test_summarize_describes_a_real_board(self, state):
         lines = recommender.summarize(recommender.recommend(state))

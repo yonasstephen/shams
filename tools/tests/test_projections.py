@@ -207,3 +207,23 @@ class TestBacktestMetrics:
     def test_test_season_cannot_be_a_prior(self):
         with pytest.raises(ValueError, match="both training and test"):
             backtest.run("2025-26", ["2025-26"])
+
+
+class TestBackfillCompleteness:
+    """Guard against silently modelling on an incomplete cache."""
+
+    @pytest.mark.parametrize(
+        "game_id,expected",
+        [
+            ("0022300001", True),   # regular season
+            ("0012300001", False),  # preseason
+            ("0042300001", False),  # playoffs
+            ("", False),
+            (None, False),
+            ("12", False),
+        ],
+    )
+    def test_game_type_from_id(self, game_id, expected):
+        from scripts.build_projections import is_regular_season
+
+        assert is_regular_season(game_id) is expected

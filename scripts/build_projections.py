@@ -35,6 +35,9 @@ _console = Console()
 #: How many seasons of history the baseline draws on.
 _PRIOR_SEASONS = 3
 
+#: A prior season below this share of the fullest season's game count is flagged.
+_COMPLETENESS_THRESHOLD = 0.97
+
 
 def _season_start_year(season: str) -> int:
     return int(season.split("-")[0])
@@ -74,6 +77,9 @@ def build(
         return 0
     for name in available:
         _console.print(f"  {name}: {len(loaded[name])} players")
+
+    for warning in incomplete_seasons(available):
+        _console.print(f"[yellow]⚠[/yellow] {warning}")
 
     experience = experience_map(season)
     projections = marcel.project_season(
@@ -171,6 +177,69 @@ def _apply_residual(
         residual.apply_correction(projected, features, models)
         applied += 1
     return applied
+
+
+def is_regular_season(game_id: object) -> bool:
+    """Whether an NBA game id refers to a regular-season game.
+
+    The third digit encodes game type: 1 preseason, 2 regular season, 4
+    playoffs. The box score cache holds regular season only, so counting
+    anything else inflates the expected total and reports every season as
+    incomplete.
+    """
+    text = str(game_id or "")
+    return len(text) > 2 and text[2] == "2"
+
+
+def incomplete_seasons(seasons: Sequence[str]) -> List[str]:
+    """Warn about priors whose box score cache is missing games.
+
+    An incomplete backfill silently degrades the model — during development a
+    season missing ~7% of its games was enough to flip a backtest from a win to
+    a loss, because every rate is computed off understated totals. Nothing
+    downstream can detect that, so it is checked here rather than trusted to
+    memory.
+
+    Each season is measured against **its own** schedule, not against other
+    seasons: how many games are fantasy-eligible varies year to year (2024-25
+    had 164 filtered out, 2023-24 only 90), so a cross-season comparison flags
+    complete seasons as incomplete.
+    """
+    from tools.schedule import schedule_cache
+
+    warnings: List[str] = []
+    for season in seasons:
+        games_dir = Path.home() / ".shams" / "boxscores" / "games" / season
+        if not games_dir.exists():
+            continue
+        cached = sum(1 for _ in games_dir.glob("*.json"))
+
+        full = schedule_cache.load_full_schedule(season)
+        date_games = (full or {}).get("date_games") or {}
+        # The schedule includes preseason; the fetcher only caches regular
+        # season. NBA game ids encode type in the third digit — 1 preseason,
+        # 2 regular, 4 playoffs — so counting anything else inflates the
+        # denominator and reports every season as incomplete.
+        expected = len(
+            {
+                str(game.get("game_id"))
+                for games in date_games.values()
+                for game in games
+                if is_regular_season(game.get("game_id"))
+            }
+        )
+        if not expected:
+            continue
+
+        share = cached / expected
+        if share < _COMPLETENESS_THRESHOLD:
+            warnings.append(
+                f"{season}: {cached} of {expected} scheduled games cached "
+                f"({share:.0%}). Rates will be understated — re-run "
+                f"scripts/backfill_seasons.py --season {season}, or drop it "
+                "from --priors."
+            )
+    return warnings
 
 
 def _blend_external(
