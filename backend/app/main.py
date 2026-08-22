@@ -11,7 +11,17 @@ from fastapi.middleware.cors import CORSMiddleware
 # Add parent directory to path to import tools
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.api import auth, boxscore, config, league, matchup, players, refresh, waiver
+from app.api import (
+    auth,
+    boxscore,
+    config,
+    draft,
+    league,
+    matchup,
+    players,
+    refresh,
+    waiver,
+)
 from app.config import settings
 
 # Configure logging - can be controlled via LOG_LEVEL environment variable
@@ -38,12 +48,23 @@ if settings.debug:
         ]
     )
 
+# The draft assistant runs as a Chrome extension, whose origin is
+# chrome-extension://<id>. A configured id is always allowed; without one we fall
+# back to a permissive regex in debug only, so a dev never has to look up the id
+# just to try the draft panel.
+allowed_origin_regex = None
+if settings.draft_extension_id:
+    allowed_origins.append(f"chrome-extension://{settings.draft_extension_id}")
+elif settings.debug:
+    allowed_origin_regex = r"chrome-extension://[a-p]+"
+
 # Remove any empty origins
 allowed_origins = [origin for origin in allowed_origins if origin]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=allowed_origin_regex,
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],  # Include OPTIONS for preflight
     allow_headers=[
@@ -63,6 +84,7 @@ app.include_router(config.router, prefix="/api/config", tags=["config"])
 app.include_router(refresh.router, prefix="/api/refresh", tags=["refresh"])
 app.include_router(league.router, prefix="/api/league", tags=["league"])
 app.include_router(boxscore.router, prefix="/api/boxscore", tags=["boxscore"])
+app.include_router(draft.router, prefix="/api/draft", tags=["draft"])
 
 
 @app.get("/")

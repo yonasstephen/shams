@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Shams Draft Assistant",
+  "version": "0.1.0",
+  "description": "Punt-aware 9-cat recommendations and category scarcity alongside your Yahoo fantasy basketball draft.",
+  "minimum_chrome_version": "114",
+
+  "permissions": ["storage", "sidePanel"],
+
+  "host_permissions": [
+    "*://*.fantasysports.yahoo.com/draftclient/*",
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "side_panel": {
+    "default_path": "panel/index.html"
+  },
+
+  "action": {
+    "default_title": "Shams Draft Assistant"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.fantasysports.yahoo.com/draftclient/*"],
+      "js": ["main-world.js"],
+      "world": "MAIN",
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": ["*://*.fantasysports.yahoo.com/draftclient/*"],
+      "js": ["content.js"],
+      "world": "ISOLATED",
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}

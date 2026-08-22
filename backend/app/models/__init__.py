@@ -242,3 +242,15 @@ class RankedPlayersResponse(BaseModel):
 
     players: List[RankedPlayer]
     total_count: int
+
+
+# Draft assistant models live in their own module to keep this file readable;
+# re-exported so callers keep using `from app.models import ...`.
+from app.models.draft import (  # noqa: E402
+    CategorySupplyModel,
+    DraftBoardResponse,
+    DraftStateRequest,
+    PuntVerdictModel,
+    RecommendationModel,
+    RosterEntry,
+)
