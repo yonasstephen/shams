@@ -6,7 +6,17 @@ your Yahoo fantasy basketball draft.
 No build step. The files here load as-is, which is deliberate: on draft day the
 last thing you want between you and a working tool is a broken bundler.
 
+See `docs/draft-assistant.md` for the full draft-day checklist, what the panel
+tells you, and how good the projections actually are.
+
 ## Install
+
+0. Build the projection CSV (optional — without it the assistant uses Yahoo's
+   own projections):
+
+   ```bash
+   pipenv run python scripts/build_projections.py --season 2026-27
+   ```
 
 1. Start the backend:
 
@@ -78,8 +88,16 @@ SHAMS_DRAFT_CAPTURE_DIR=~/.shams/draft-captures uvicorn app.main:app --port 8000
 Every payload lands in that directory as JSON, giving you real snapshots to
 develop and test against in July when no draft is running.
 
+## Second screen
+
+`/draft` in the Shams web app mirrors whatever the extension is reading, polling
+`GET /api/draft/latest`. Useful on a second monitor, and the fallback if the
+side panel misbehaves mid-draft.
+
 ## Before draft day
 
+- Review the projections: `curl 'localhost:8000/api/draft/projections?season=2026-27'`.
+  The model is good on aggregate and wrong about individuals.
 - Run at least one full mock draft end to end.
 - Confirm `/api/draft/health` responds *before* the draft, not at pick 1.
 - Check the panel's footer shows a compute time; if it's climbing above a few
