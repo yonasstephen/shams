@@ -30,7 +30,7 @@ pipenv run python scripts/backfill_seasons.py --seasons 4
 pipenv run python scripts/build_projections.py --season 2026-27
 
 # 3. Review the numbers BEFORE draft day.
-curl 'localhost:8000/api/draft/projections?season=2026-27&limit=50'
+curl 'https://localhost:8000/api/draft/projections?season=2026-27&limit=50'
 
 # 4. Fix anything wrong by hand — rookies, trades, role changes.
 pipenv run python scripts/build_projections.py --season 2026-27 --template
@@ -38,7 +38,7 @@ $EDITOR ~/.shams/projections/2026-27.overrides.csv
 
 # 5. Start the backend and confirm it answers.
 ./scripts/dev.sh
-curl localhost:8000/api/draft/health
+curl https://localhost:8000/api/draft/health
 
 # 6. Load extension/ unpacked, open the draft room, open the side panel.
 ```

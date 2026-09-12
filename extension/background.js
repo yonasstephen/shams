@@ -7,7 +7,7 @@
  * mid-draft refresh or reconnect a non-event.
  */
 
-const DEFAULT_BACKEND = "http://localhost:8000";
+const DEFAULT_BACKEND = "https://localhost:8000";
 /** Players the user marked drafted by hand when the adapter missed them. */
 let manualPicks = [];
 /** Never let two analyses overlap; the newest state always wins. */

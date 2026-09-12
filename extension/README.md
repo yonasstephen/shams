@@ -22,7 +22,7 @@ tells you, and how good the projections actually are.
 
    ```bash
    ./scripts/dev.sh          # or: cd backend && uvicorn app.main:app --port 8000
-   curl localhost:8000/api/draft/health     # {"status":"ready",...}
+   curl https://localhost:8000/api/draft/health     # {"status":"ready",...}
    ```
 
 2. Open `chrome://extensions`, enable **Developer mode**, click
@@ -96,7 +96,7 @@ side panel misbehaves mid-draft.
 
 ## Before draft day
 
-- Review the projections: `curl 'localhost:8000/api/draft/projections?season=2026-27'`.
+- Review the projections: `curl 'https://localhost:8000/api/draft/projections?season=2026-27'`.
   The model is good on aggregate and wrong about individuals.
 - Run at least one full mock draft end to end.
 - Confirm `/api/draft/health` responds *before* the draft, not at pick 1.

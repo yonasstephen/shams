@@ -313,7 +313,7 @@
 
   const backend = $("backend");
   chrome.storage.local.get("backendUrl").then((stored) => {
-    backend.value = stored.backendUrl || "http://localhost:8000";
+    backend.value = stored.backendUrl || "https://localhost:8000";
   });
   backend.addEventListener("change", () => {
     chrome.runtime.sendMessage({ type: "SET_BACKEND_URL", url: backend.value.trim() });
