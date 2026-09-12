@@ -135,10 +135,23 @@
     // `order` is authoritative when populated, but it can be an empty array
     // while byId holds picks — and `[] || fallback` yields the empty array,
     // which would silently report a draft with zero picks. Check length.
+    //
+    // Its entries are the pick objects themselves, not keys into byId, which is
+    // keyed by playerId — so indexing one with the other stringifies to
+    // "[object Object]" and every lookup misses. Both shapes have now been seen,
+    // so accept either rather than assuming one.
     const picksById = state.draftPicks?.byId || {};
     const pickOrder = state.draftPicks?.order;
     const pickKeys = pickOrder && pickOrder.length ? pickOrder : Object.keys(picksById);
-    const picks = pickKeys.map((key) => picksById[key]);
+    const picks = pickKeys.map((entry) =>
+      entry && typeof entry === "object" ? entry : picksById[entry]
+    );
+
+    // Resolving none of them is this adapter's most likely silent failure: the
+    // board still computes, it just computes round one forever.
+    if (pickKeys.length && !picks.some(Boolean)) {
+      emitStatus("picks-unmapped", { count: pickKeys.length });
+    }
 
     const teams = {};
     for (const [id, team] of Object.entries(state.league?.teams || {})) {

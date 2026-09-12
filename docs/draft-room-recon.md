@@ -43,7 +43,8 @@ This replaces the per-field fiber walking the plan assumed:
 | Slice | Contents |
 | --- | --- |
 | `players.byId` / `players.all` | **The full pool** — 662 players, not the 100 rendered |
-| `draftPicks.order` / `.byId` | Pick history. Pick: `{id, playerId, teamId, cost}` |
+| `draftPicks.order` | Pick history **as objects, in pick order** — not keys. `{id, playerId, teamId, cost}` |
+| `draftPicks.byId` | The same picks keyed by **`playerId`**, not by pick `id` |
 | `draftOrder.order` | **Every pick of the draft up front** — 182 × `{id, teamId}` |
 | `draftOrder.currentPick` / `.currentTeam` | Whose turn it is |
 | `countdown.seconds` / `.timeout` | The live pick clock |
@@ -91,6 +92,22 @@ Verified: LeBron `projected_stats` `4/3` = 463/907 = .510 = id `5`; `7/6` = 210/
 
 **FGA/FGM and FTA/FTM are present**, so volume-weighted percentage z-scores are computable
 without any external source — the plan flagged this as mandatory and it is already satisfied.
+
+### `draftPicks` is two different keyings (2026-09-12)
+
+`order` holds the pick objects themselves and `byId` is keyed by `playerId`, so
+the two do not compose: `byId[order[i]]` stringifies the object to
+`"[object Object]"` and misses on every pick. An adapter that assumed `order`
+held keys silently reported a draft with zero picks — the board still computed,
+it just computed round one forever, recommending players taken in round one.
+
+Confirmed live at pick 71 of a 14-team mock:
+
+    order sample: [{"id":"1","teamId":"1","playerId":"10094","cost":0}, ...]
+    byId first:   3704 -> {"id":"49","teamId":"8","playerId":"3704","cost":0}
+
+`extract()` now accepts either shape and emits a `picks-unmapped` status when
+entries exist but none resolve, so the same failure cannot be silent twice.
 
 ## Recon questions answered
 
