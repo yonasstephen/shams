@@ -45,6 +45,7 @@ if settings.debug:
         [
             "http://localhost:3000",
             "http://localhost:5173",
+            "https://localhost:5173",
         ]
     )
 
