@@ -24,6 +24,31 @@ DEFAULT_TOKEN_DIR = Path(
 ).expanduser()
 WAIVER_BATCH_SIZE = int(os.environ.get("WAIVER_BATCH_SIZE", 25))  # Yahoo API caps at 25
 
+# Yahoo reports a dead credential in several unrelated phrasings and the wording is
+# not stable — yfpy surfaces whatever the API returned, so the text is Yahoo's, not
+# ours. Matching only the oauth_problem forms meant a rejected token propagated as a
+# raw yfpy exception (a 500 to the caller) when the truthful answer was "log in
+# again": a 20-day-old token failed with "This application is not authorized to
+# perform this action." and never reached the refresh path at all.
+#
+# Deliberately excludes a bare "401": yfpy embeds the request URL in the message and
+# Yahoo player keys are numeric, so any pool containing player 4012 would match.
+_AUTH_ERROR_MARKERS = (
+    "token_expired",
+    "oauth_problem",
+    "invalid_token",
+    "invalid_grant",
+    "not authorized to perform this action",
+    "unauthorized",
+)
+
+
+def _is_auth_error(message: str) -> bool:
+    """Does this Yahoo error mean the credential is bad, rather than the request?"""
+    lowered = message.lower()
+    return any(marker in lowered for marker in _AUTH_ERROR_MARKERS)
+
+
 # Bounded LRU cache of query wrappers, keyed by (game_code, league_id, league_key).
 # Managed explicitly rather than with functools.lru_cache so that evicting an entry
 # closes its underlying OAuth2 requests.Session. functools.lru_cache silently discards
@@ -135,10 +160,9 @@ class TokenRefreshQueryWrapper:
                 return attr(*args, **kwargs)
             except YahooFantasySportsException as exc:
                 error_msg = str(exc)
-                # Check if this is a token expiration error
-                if (
-                    "token_expired" in error_msg or "oauth_problem" in error_msg
-                ) and not retry_attempted:
+                # Any error meaning "this credential is no longer good", not just
+                # the expiry phrasings — see _AUTH_ERROR_MARKERS.
+                if _is_auth_error(error_msg) and not retry_attempted:
                     print(
                         f"[DEBUG] Token expired during {name}, clearing cache and retrying..."
                     )
