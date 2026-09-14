@@ -70,7 +70,7 @@ describe('LeagueSelector', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Test League 1')).toBeInTheDocument();
+      expect(screen.getByText('Test League 1 (2024)')).toBeInTheDocument();
     });
   });
 
@@ -88,7 +88,7 @@ describe('LeagueSelector', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Test League 1')).toBeInTheDocument();
+      expect(screen.getByText('Test League 1 (2024)')).toBeInTheDocument();
     });
 
     // Click the dropdown button to open it (get by aria-haspopup attribute to distinguish from refresh button)
@@ -102,7 +102,7 @@ describe('LeagueSelector', () => {
       expect(screen.getByRole('listbox')).toBeInTheDocument();
     });
 
-    const league2Option = screen.getByText('Test League 2');
+    const league2Option = screen.getByText('Test League 2 (2024)');
     await user.click(league2Option);
 
     await waitFor(() => {

@@ -334,11 +334,71 @@ def _load_query(  # noqa: PLR0913
         return wrapper
 
 
-def fetch_user_leagues() -> Sequence[dict]:
-    """Retrieve NBA leagues for the authenticated user."""
+def _as_list(result) -> list:
+    """Normalise a yfpy result that is a bare object when it has one element."""
+    if result is None:
+        return []
+    return result if isinstance(result, list) else [result]
+
+
+def _user_nba_game_keys() -> List[str]:
+    """Game keys for the NBA seasons this user actually played, newest first.
+
+    Yahoo exposes a season's game key as soon as the season exists, well before
+    any league is created in it, so the current game key is a poor guess at where
+    a user's leagues live. Their own game history is authoritative.
+    """
     query = _load_query(game_code="nba")
-    leagues = query.get_user_leagues_by_game_key("nba")
-    return [league.serialized() for league in leagues]
+    try:
+        # yfpy sorts ascending by season; newest first is what we want to try.
+        games = _as_list(query.get_user_games())
+    except YahooAuthError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - no game history is not an error
+        logger.info("Could not read Yahoo game history: %s", exc)
+        return []
+
+    keys = []
+    for game in reversed(games):
+        key = getattr(game, "game_key", None)
+        if key:
+            keys.append(str(key))
+    return keys
+
+
+def fetch_user_leagues() -> Sequence[dict]:
+    """Retrieve NBA leagues for the authenticated user.
+
+    Asks for the newest season the user actually has leagues in, rather than the
+    season Yahoo currently considers active. In the preseason those differ: the
+    new game key exists but holds no leagues yet, while last season's leagues are
+    the ones the user still cares about. Querying the active key alone made an
+    ordinary preseason look like a dead credential -- Yahoo answers "not
+    authorized to perform this action" for a game the user has no leagues in,
+    which _is_auth_error() cannot distinguish from a genuinely rejected token, so
+    the caller logged the user out on every attempt.
+
+    Returns an empty list when the account has no NBA leagues at all. That is a
+    legitimate state, not an authentication failure.
+    """
+    query = _load_query(game_code="nba")
+
+    for game_key in _user_nba_game_keys():
+        try:
+            leagues = _as_list(query.get_user_leagues_by_game_key(game_key))
+        except YahooAuthError:
+            # The credential itself is rejected; older seasons will fail the same
+            # way, so stop rather than retrying the refresh once per season.
+            raise
+        except Exception as exc:  # noqa: BLE001 - this season simply has none
+            logger.debug("No leagues for NBA game key %s: %s", game_key, exc)
+            continue
+
+        if leagues:
+            return [league.serialized() for league in leagues]
+
+    logger.info("Yahoo account has no NBA leagues in any season")
+    return []
 
 
 def _serialize_player(player) -> Optional[dict]:

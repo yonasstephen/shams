@@ -197,6 +197,7 @@ def get_current_user(request: Request):
         leagues = fetch_user_leagues()
         return {"authenticated": True, "leagues": leagues}
     except YahooAuthError as e:
+        logger.warning("Yahoo rejected the stored credential for /me: %s", e)
         raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}") from e
     except Exception as e:
         logger.error("Unexpected error in /me: %s", e)
@@ -223,8 +224,10 @@ def get_user_leagues(request: Request):
         leagues = fetch_user_leagues()
         return {"leagues": leagues}
     except YahooAuthError as e:
-        # Yahoo authentication failed - token expired or invalid
-        # Clear the session to force re-authentication
+        # Yahoo rejected the stored credential. Log the underlying reason before
+        # discarding the session: this branch used to destroy the session and
+        # answer with a fixed string, so a login loop left no trace of its cause.
+        logger.warning("Yahoo rejected the stored credential for /leagues: %s", e)
         if session_id:
             yahoo_web.delete_session(session_id)
         raise HTTPException(

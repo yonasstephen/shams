@@ -51,9 +51,11 @@ export function LeagueSelector() {
 
   const dropdownOptions = [
     ...(!defaultLeagueKey ? [{ value: '', label: 'Select League...' }] : []),
+    // Show the season: in the preseason the newest leagues Yahoo has are still
+    // last season's, and an unlabelled name reads as the current one.
     ...leagues.map((league: LeagueInfo) => ({
       value: league.league_key,
-      label: league.name,
+      label: league.season ? `${league.name} (${league.season})` : league.name,
     })),
   ];
 
