@@ -173,8 +173,13 @@ class TokenRefreshQueryWrapper:
 
                     # Force token refresh by manually calling OAuth refresh
                     # This is a fallback in case backend didn't catch the expiration
+                    # A refresh Yahoo honours proves the credential is live, which
+                    # is what separates "expired token" from "app lacks Fantasy
+                    # Sports permission" when the retry fails the same way.
+                    refresh_succeeded = False
                     try:
                         self._force_token_refresh()
+                        refresh_succeeded = True
                     except Exception as refresh_err:
                         print(f"[WARNING] Manual token refresh failed: {refresh_err}")
 
@@ -219,8 +224,23 @@ class TokenRefreshQueryWrapper:
                         print(f"[DEBUG] Retry successful for {name}")
                         return result
                     except YahooFantasySportsException as retry_exc:
-                        # If retry also fails, raise as YahooAuthError
                         print(f"[DEBUG] Retry failed for {name}: {str(retry_exc)}")
+                        if refresh_succeeded:
+                            raise YahooAuthError(
+                                "Yahoo refreshed the token but still refused "
+                                f"{name}, so the credential is live and the "
+                                "application is not entitled to the Fantasy "
+                                "Sports API. Since 2026-07-22 Yahoo enforces "
+                                "an approval program for it: self-serve "
+                                "provisioning is gone, the create-app form no "
+                                "longer offers the permission, and existing "
+                                "apps that already held Fantasy Sports - Read "
+                                "are refused too. Signing in again cannot "
+                                "help. Apply at "
+                                "sports.yahoo.com/developer/access/. "
+                                f"Yahoo said: {retry_exc}",
+                                credential_valid=True,
+                            ) from retry_exc
                         raise YahooAuthError(
                             f"Token refresh failed: {str(retry_exc)}"
                         ) from retry_exc
@@ -241,7 +261,20 @@ def _ensure_token_dir() -> Path:
 
 
 class YahooAuthError(Exception):
-    """Raised when authentication with Yahoo fails."""
+    """Raised when authentication with Yahoo fails.
+
+    ``credential_valid`` marks the case where the credential demonstrably works
+    but Yahoo still refuses the call: a token refresh that Yahoo honoured,
+    followed by the same rejection using the freshly minted token. That is not
+    an expiry, and prompting for another login cannot fix it — the Yahoo
+    application itself is missing Fantasy Sports permission. Callers use it to
+    avoid discarding a perfectly good session and sending the user round a
+    login loop that can never terminate.
+    """
+
+    def __init__(self, message: str, *, credential_valid: bool = False):
+        super().__init__(message)
+        self.credential_valid = credential_valid
 
 
 def _parse_league_id(league_key: str) -> Optional[str]:

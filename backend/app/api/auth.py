@@ -197,6 +197,9 @@ def get_current_user(request: Request):
         leagues = fetch_user_leagues()
         return {"authenticated": True, "leagues": leagues}
     except YahooAuthError as e:
+        if e.credential_valid:
+            logger.error("Yahoo refused the Fantasy API for /me: %s", e)
+            raise HTTPException(status_code=403, detail=str(e)) from e
         logger.warning("Yahoo rejected the stored credential for /me: %s", e)
         raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}") from e
     except Exception as e:
@@ -224,6 +227,14 @@ def get_user_leagues(request: Request):
         leagues = fetch_user_leagues()
         return {"leagues": leagues}
     except YahooAuthError as e:
+        # A credential Yahoo still honours, refused anyway: the app lacks Fantasy
+        # Sports permission. Keep the session and answer 403 — 401 would send the
+        # frontend's interceptor to /login, and no number of logins can fix an
+        # app-level permission, which is precisely how this became an endless loop.
+        if e.credential_valid:
+            logger.error("Yahoo refused the Fantasy API for /leagues: %s", e)
+            raise HTTPException(status_code=403, detail=str(e)) from e
+
         # Yahoo rejected the stored credential. Log the underlying reason before
         # discarding the session: this branch used to destroy the session and
         # answer with a fixed string, so a login loop left no trace of its cause.
