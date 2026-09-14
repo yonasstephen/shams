@@ -36,8 +36,9 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-# Expose port
-EXPOSE 80
+# Expose both listeners: 443 when certificates are mounted, 80 otherwise
+# (docker-entrypoint.sh decides which one nginx binds).
+EXPOSE 80 443
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 

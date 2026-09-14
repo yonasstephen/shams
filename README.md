@@ -114,8 +114,8 @@ Get credentials from [Yahoo Developer Network](https://developer.yahoo.com/apps/
 | `SESSION_SECRET` | — | Required for web app; generate with `openssl rand -hex 32` |
 | `ALLOWED_YAHOO_EMAILS` | — | Comma-separated whitelist; empty = allow all Yahoo accounts |
 | `COOKIE_SECURE` | `false` | Set `true` in production (requires HTTPS) |
-| `BACKEND_URL` | — | Public backend URL for web app OAuth redirect |
-| `FRONTEND_URL` | — | Public frontend URL for CORS |
+| `BACKEND_URL` | — | Origin used to build the Yahoo OAuth redirect URI. In production, the same public origin as `FRONTEND_URL` (nginx proxies `/api`) |
+| `FRONTEND_URL` | — | Public origin users browse to; post-login redirect and allowed CORS origin |
 | `DEBUG` | `True` | Set `False` in production |
 
 ### Stat Color Thresholds
@@ -214,10 +214,28 @@ Run `/refresh` first to populate the NBA schedule cache.
 Click "Login with Yahoo" to authenticate.
 
 **Web app: CORS errors**
-Ensure `FRONTEND_URL` and `BACKEND_URL` match your deployment URLs exactly.
+Ensure `FRONTEND_URL` and `BACKEND_URL` match your deployment URLs exactly. In
+production both should be the *same* origin — nginx proxies `/api` to the
+backend, so a cross-origin call means one of them is pointing somewhere else.
 
 **Web app: "Failed to load leagues"**
-Backend isn't reachable from the frontend — check port 8000 is running and `BACKEND_URL` is correct.
+Usually the origin you browsed to isn't the one the app was configured with.
+Check `curl http://<host>:5173/config.js`: `API_URL` should be `/` (same-origin
+proxy). If it names an absolute URL, requests go to that host instead, and with
+`DEBUG=False` the backend allows only `FRONTEND_URL` as a CORS origin and
+answers `400 Disallowed CORS origin`.
+
+**Web app: login redirects back to /login forever**
+The page and the API must share a scheme. Under Chrome's schemeful same-site,
+an HTTP page calling an HTTPS API is cross-site even on the same host, so the
+`SameSite=Lax` session cookie is withheld, `/api/auth/me` answers 401, and the
+interceptor bounces you to `/login`. The cookie is visible in DevTools →
+Application → Cookies the whole time — it is never sent, not never set. Serve
+the frontend over HTTPS (mount `./certs`) so both sides are same-origin.
+
+**Web app: browser refuses the API call with a certificate error**
+The certificate must cover the address you browse to. Regenerate with every
+address listed: `./scripts/generate-ssl-cert.sh --dev 192.168.0.30 100.95.104.96`.
 
 **Docker (macOS): "Cannot connect to Docker daemon"**
 Run `colima start`.

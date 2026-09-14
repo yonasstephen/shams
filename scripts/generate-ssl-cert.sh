@@ -2,8 +2,12 @@
 # Generate SSL certificates for local dev (mkcert) or production (Let's Encrypt)
 #
 # Usage:
-#   ./scripts/generate-ssl-cert.sh --dev
+#   ./scripts/generate-ssl-cert.sh --dev [extra-host ...]
 #   ./scripts/generate-ssl-cert.sh --prod <domain>
+#
+# Pass every address a browser will use to reach the deployment. A certificate
+# is only valid for the names in its SAN list, so a cert covering just
+# localhost is rejected when you open the app on a LAN or Tailscale IP.
 
 set -euo pipefail
 
@@ -11,12 +15,20 @@ CERT_DIR="./certs"
 
 usage() {
   echo "Usage:"
-  echo "  $0 --dev"
+  echo "  $0 --dev [extra-host ...]"
   echo "  $0 --prod <domain>"
+  echo ""
+  echo "Examples:"
+  echo "  $0 --dev                                  # localhost only"
+  echo "  $0 --dev 192.168.0.30 100.95.104.96       # plus LAN and Tailscale IPs"
   exit 1
 }
 
 dev_mode() {
+  # "$@" expands to nothing when no extra hosts are given, so the list is
+  # always well-formed under `set -u`.
+  local hosts=(localhost 127.0.0.1 ::1 "$@")
+
   if ! command -v mkcert &>/dev/null; then
     echo "Error: mkcert is not installed."
     echo ""
@@ -32,16 +44,19 @@ dev_mode() {
   echo "Installing local CA (no-op if already done)..."
   mkcert -install
 
-  echo "Generating mkcert certificate for localhost..."
-  mkcert -key-file "$CERT_DIR/key.pem" -cert-file "$CERT_DIR/cert.pem" \
-    localhost 127.0.0.1 ::1
+  echo "Generating mkcert certificate for: ${hosts[*]}"
+  mkcert -key-file "$CERT_DIR/key.pem" -cert-file "$CERT_DIR/cert.pem" "${hosts[@]}"
 
   echo ""
   echo "Done. Certificates written to $CERT_DIR/"
   echo "  Certificate: $CERT_DIR/cert.pem"
   echo "  Private key: $CERT_DIR/key.pem"
   echo ""
-  echo "Browsers will trust these certs automatically (via mkcert local CA)."
+  echo "Covers: ${hosts[*]}"
+  echo ""
+  echo "Browsers on this machine trust these automatically (via mkcert local CA)."
+  echo "On another device (phone, or a NAS you browse to), either install the CA"
+  echo "at \"$(mkcert -CAROOT)/rootCA.pem\" or accept the warning once per origin."
 }
 
 prod_mode() {
@@ -86,7 +101,8 @@ fi
 
 case "$1" in
   --dev)
-    dev_mode
+    shift
+    dev_mode "$@"
     ;;
   --prod)
     if [[ $# -lt 2 || -z "$2" ]]; then
