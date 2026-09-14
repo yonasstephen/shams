@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shams Draft Assistant</title>
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <span class="brand">Shams</span>
+      <span id="status" class="status">Connecting…</span>
+      <span id="clock" class="clock" hidden></span>
+    </header>
+
+    <div id="banner" class="banner" hidden></div>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab is-active" data-tab="pick" role="tab">Pick</button>
+      <button class="tab" data-tab="scarcity" role="tab">Scarcity</button>
+      <button class="tab" data-tab="team" role="tab">My team</button>
+      <button class="tab" data-tab="board" role="tab">Board</button>
+    </nav>
+
+    <main>
+      <!-- The only view that matters while the clock runs. -->
+      <section class="view is-active" data-view="pick">
+        <div id="turn" class="turn"></div>
+        <div id="headline" class="headline empty">Waiting for the draft to start…</div>
+        <h2 class="label">Alternatives</h2>
+        <ul id="alternatives" class="rows"></ul>
+        <div id="gaps" class="gaps"></div>
+        <div id="build" class="build"></div>
+      </section>
+
+      <section class="view" data-view="scarcity">
+        <p class="hint">
+          Elite sources left versus teams that still need them, and how many
+          survive to your next pick.
+        </p>
+        <ul id="supply" class="supply"></ul>
+      </section>
+
+      <section class="view" data-view="team">
+        <h2 class="label">Category standing vs. an average team</h2>
+        <ul id="heatmap" class="heatmap"></ul>
+        <h2 class="label">Punt builds tested</h2>
+        <ul id="punts" class="punts"></ul>
+        <h2 class="label">Your roster</h2>
+        <ul id="roster" class="rows"></ul>
+      </section>
+
+      <section class="view" data-view="board">
+        <ul id="board" class="rows"></ul>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <button id="clear-manual" class="linkish" type="button" title="Undo all manual pick corrections">reset marks</button>
+      <label for="backend">Backend</label>
+      <input id="backend" type="text" spellcheck="false" placeholder="http://localhost:8000" />
+      <span id="meta" class="meta"></span>
+    </footer>
+
+    <script src="panel.js"></script>
+  </body>
+</html>

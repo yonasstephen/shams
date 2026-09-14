@@ -14,8 +14,12 @@ services:
       - YAHOO_CONSUMER_KEY=${YAHOO_CONSUMER_KEY}
       - YAHOO_CONSUMER_SECRET=${YAHOO_CONSUMER_SECRET}
       - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required}
-      - BACKEND_URL=${BACKEND_URL:?BACKEND_URL is required (e.g., https://api.yourdomain.com)}
-      - FRONTEND_URL=${FRONTEND_URL:?FRONTEND_URL is required (e.g., https://yourdomain.com)}
+      # Only used to build the Yahoo OAuth redirect_uri, which must point at
+      # the origin the browser talks to - that is the nginx proxy, not :8000.
+      - BACKEND_URL=${BACKEND_URL:?BACKEND_URL is required (the public origin, e.g., https://yourdomain.com:5173)}
+      # Same origin as BACKEND_URL now that nginx fronts both; used for the
+      # post-login redirect and as the sole allowed CORS origin.
+      - FRONTEND_URL=${FRONTEND_URL:?FRONTEND_URL is required (e.g., https://yourdomain.com:5173)}
       - DEBUG=False
     volumes:
       # Share cache directory with host for persistent data
@@ -55,10 +59,19 @@ services:
         - http_proxy=${HTTP_PROXY:-}
         - https_proxy=${HTTPS_PROXY:-}
     ports:
-      - "5173:80"
+      # nginx terminates TLS and proxies /api to the backend, so this single
+      # published port serves the whole app. See frontend/nginx.conf.
+      - "5173:443"
     environment:
-      # This replaces __API_URL__ placeholder in config.js at container startup
-      - VITE_API_URL=${BACKEND_URL:?BACKEND_URL is required}
+      # Relative by default: the API is proxied at /api on this same origin,
+      # which keeps the session cookie same-site and lets one deployment answer
+      # on LAN, Tailscale and localhost addresses without a rebuild. Set an
+      # absolute URL only if the API really lives on another origin.
+      - VITE_API_URL=${FRONTEND_API_URL:-/}
+    volumes:
+      # nginx serves HTTPS from these; without them it falls back to plain HTTP
+      # and Yahoo OAuth will not work.
+      - ./certs:/etc/nginx/certs:ro
     depends_on:
       - backend
     restart: unless-stopped

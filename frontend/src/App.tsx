@@ -10,6 +10,7 @@ import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { PlayerSearch } from './pages/PlayerSearch';
 import { WaiverWire } from './pages/WaiverWire';
+import { DraftRoom } from './pages/DraftRoom';
 import { Matchup } from './pages/Matchup';
 import { BoxScores } from './pages/BoxScores';
 import { CacheDebug } from './pages/CacheDebug';
@@ -28,6 +29,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/player" element={<PlayerSearch />} />
               <Route path="/waiver" element={<WaiverWire />} />
+              <Route path="/draft" element={<DraftRoom />} />
               <Route path="/matchup" element={<Matchup />} />
               <Route path="/boxscores" element={<BoxScores />} />
               <Route path="/cache-debug" element={<CacheDebug />} />

@@ -1,0 +1,1336 @@
+{
+  "_note": "Captured from a live Yahoo NBA mock draft 2026-08-22 (league 2041416). Player lines and settings are verbatim; the 182-pick order beyond the first four entries is synthesized as a standard snake.",
+  "draft": {
+    "draftType": "standard",
+    "state": "underway",
+    "loadingStatus": "connected"
+  },
+  "context": {
+    "leagueId": "2041416",
+    "managerId": "6",
+    "isPremium": false,
+    "sportCode": "nba"
+  },
+  "countdown": {
+    "seconds": 12,
+    "timeout": false
+  },
+  "draftOrder": {
+    "currentPick": 24,
+    "currentTeam": "4",
+    "order": [
+      {
+        "id": 0,
+        "teamId": "1"
+      },
+      {
+        "id": 1,
+        "teamId": "2"
+      },
+      {
+        "id": 2,
+        "teamId": "3"
+      },
+      {
+        "id": 3,
+        "teamId": "4"
+      },
+      {
+        "id": 4,
+        "teamId": "5"
+      },
+      {
+        "id": 5,
+        "teamId": "6"
+      },
+      {
+        "id": 6,
+        "teamId": "7"
+      },
+      {
+        "id": 7,
+        "teamId": "8"
+      },
+      {
+        "id": 8,
+        "teamId": "9"
+      },
+      {
+        "id": 9,
+        "teamId": "10"
+      },
+      {
+        "id": 10,
+        "teamId": "11"
+      },
+      {
+        "id": 11,
+        "teamId": "12"
+      },
+      {
+        "id": 12,
+        "teamId": "13"
+      },
+      {
+        "id": 13,
+        "teamId": "14"
+      },
+      {
+        "id": 14,
+        "teamId": "14"
+      },
+      {
+        "id": 15,
+        "teamId": "13"
+      },
+      {
+        "id": 16,
+        "teamId": "12"
+      },
+      {
+        "id": 17,
+        "teamId": "11"
+      },
+      {
+        "id": 18,
+        "teamId": "10"
+      },
+      {
+        "id": 19,
+        "teamId": "9"
+      },
+      {
+        "id": 20,
+        "teamId": "8"
+      },
+      {
+        "id": 21,
+        "teamId": "7"
+      },
+      {
+        "id": 22,
+        "teamId": "6"
+      },
+      {
+        "id": 23,
+        "teamId": "5"
+      },
+      {
+        "id": 24,
+        "teamId": "4"
+      },
+      {
+        "id": 25,
+        "teamId": "3"
+      },
+      {
+        "id": 26,
+        "teamId": "2"
+      },
+      {
+        "id": 27,
+        "teamId": "1"
+      },
+      {
+        "id": 28,
+        "teamId": "1"
+      },
+      {
+        "id": 29,
+        "teamId": "2"
+      },
+      {
+        "id": 30,
+        "teamId": "3"
+      },
+      {
+        "id": 31,
+        "teamId": "4"
+      },
+      {
+        "id": 32,
+        "teamId": "5"
+      },
+      {
+        "id": 33,
+        "teamId": "6"
+      },
+      {
+        "id": 34,
+        "teamId": "7"
+      },
+      {
+        "id": 35,
+        "teamId": "8"
+      },
+      {
+        "id": 36,
+        "teamId": "9"
+      },
+      {
+        "id": 37,
+        "teamId": "10"
+      },
+      {
+        "id": 38,
+        "teamId": "11"
+      },
+      {
+        "id": 39,
+        "teamId": "12"
+      },
+      {
+        "id": 40,
+        "teamId": "13"
+      },
+      {
+        "id": 41,
+        "teamId": "14"
+      },
+      {
+        "id": 42,
+        "teamId": "14"
+      },
+      {
+        "id": 43,
+        "teamId": "13"
+      },
+      {
+        "id": 44,
+        "teamId": "12"
+      },
+      {
+        "id": 45,
+        "teamId": "11"
+      },
+      {
+        "id": 46,
+        "teamId": "10"
+      },
+      {
+        "id": 47,
+        "teamId": "9"
+      },
+      {
+        "id": 48,
+        "teamId": "8"
+      },
+      {
+        "id": 49,
+        "teamId": "7"
+      },
+      {
+        "id": 50,
+        "teamId": "6"
+      },
+      {
+        "id": 51,
+        "teamId": "5"
+      },
+      {
+        "id": 52,
+        "teamId": "4"
+      },
+      {
+        "id": 53,
+        "teamId": "3"
+      },
+      {
+        "id": 54,
+        "teamId": "2"
+      },
+      {
+        "id": 55,
+        "teamId": "1"
+      },
+      {
+        "id": 56,
+        "teamId": "1"
+      },
+      {
+        "id": 57,
+        "teamId": "2"
+      },
+      {
+        "id": 58,
+        "teamId": "3"
+      },
+      {
+        "id": 59,
+        "teamId": "4"
+      },
+      {
+        "id": 60,
+        "teamId": "5"
+      },
+      {
+        "id": 61,
+        "teamId": "6"
+      },
+      {
+        "id": 62,
+        "teamId": "7"
+      },
+      {
+        "id": 63,
+        "teamId": "8"
+      },
+      {
+        "id": 64,
+        "teamId": "9"
+      },
+      {
+        "id": 65,
+        "teamId": "10"
+      },
+      {
+        "id": 66,
+        "teamId": "11"
+      },
+      {
+        "id": 67,
+        "teamId": "12"
+      },
+      {
+        "id": 68,
+        "teamId": "13"
+      },
+      {
+        "id": 69,
+        "teamId": "14"
+      },
+      {
+        "id": 70,
+        "teamId": "14"
+      },
+      {
+        "id": 71,
+        "teamId": "13"
+      },
+      {
+        "id": 72,
+        "teamId": "12"
+      },
+      {
+        "id": 73,
+        "teamId": "11"
+      },
+      {
+        "id": 74,
+        "teamId": "10"
+      },
+      {
+        "id": 75,
+        "teamId": "9"
+      },
+      {
+        "id": 76,
+        "teamId": "8"
+      },
+      {
+        "id": 77,
+        "teamId": "7"
+      },
+      {
+        "id": 78,
+        "teamId": "6"
+      },
+      {
+        "id": 79,
+        "teamId": "5"
+      },
+      {
+        "id": 80,
+        "teamId": "4"
+      },
+      {
+        "id": 81,
+        "teamId": "3"
+      },
+      {
+        "id": 82,
+        "teamId": "2"
+      },
+      {
+        "id": 83,
+        "teamId": "1"
+      },
+      {
+        "id": 84,
+        "teamId": "1"
+      },
+      {
+        "id": 85,
+        "teamId": "2"
+      },
+      {
+        "id": 86,
+        "teamId": "3"
+      },
+      {
+        "id": 87,
+        "teamId": "4"
+      },
+      {
+        "id": 88,
+        "teamId": "5"
+      },
+      {
+        "id": 89,
+        "teamId": "6"
+      },
+      {
+        "id": 90,
+        "teamId": "7"
+      },
+      {
+        "id": 91,
+        "teamId": "8"
+      },
+      {
+        "id": 92,
+        "teamId": "9"
+      },
+      {
+        "id": 93,
+        "teamId": "10"
+      },
+      {
+        "id": 94,
+        "teamId": "11"
+      },
+      {
+        "id": 95,
+        "teamId": "12"
+      },
+      {
+        "id": 96,
+        "teamId": "13"
+      },
+      {
+        "id": 97,
+        "teamId": "14"
+      },
+      {
+        "id": 98,
+        "teamId": "14"
+      },
+      {
+        "id": 99,
+        "teamId": "13"
+      },
+      {
+        "id": 100,
+        "teamId": "12"
+      },
+      {
+        "id": 101,
+        "teamId": "11"
+      },
+      {
+        "id": 102,
+        "teamId": "10"
+      },
+      {
+        "id": 103,
+        "teamId": "9"
+      },
+      {
+        "id": 104,
+        "teamId": "8"
+      },
+      {
+        "id": 105,
+        "teamId": "7"
+      },
+      {
+        "id": 106,
+        "teamId": "6"
+      },
+      {
+        "id": 107,
+        "teamId": "5"
+      },
+      {
+        "id": 108,
+        "teamId": "4"
+      },
+      {
+        "id": 109,
+        "teamId": "3"
+      },
+      {
+        "id": 110,
+        "teamId": "2"
+      },
+      {
+        "id": 111,
+        "teamId": "1"
+      },
+      {
+        "id": 112,
+        "teamId": "1"
+      },
+      {
+        "id": 113,
+        "teamId": "2"
+      },
+      {
+        "id": 114,
+        "teamId": "3"
+      },
+      {
+        "id": 115,
+        "teamId": "4"
+      },
+      {
+        "id": 116,
+        "teamId": "5"
+      },
+      {
+        "id": 117,
+        "teamId": "6"
+      },
+      {
+        "id": 118,
+        "teamId": "7"
+      },
+      {
+        "id": 119,
+        "teamId": "8"
+      },
+      {
+        "id": 120,
+        "teamId": "9"
+      },
+      {
+        "id": 121,
+        "teamId": "10"
+      },
+      {
+        "id": 122,
+        "teamId": "11"
+      },
+      {
+        "id": 123,
+        "teamId": "12"
+      },
+      {
+        "id": 124,
+        "teamId": "13"
+      },
+      {
+        "id": 125,
+        "teamId": "14"
+      },
+      {
+        "id": 126,
+        "teamId": "14"
+      },
+      {
+        "id": 127,
+        "teamId": "13"
+      },
+      {
+        "id": 128,
+        "teamId": "12"
+      },
+      {
+        "id": 129,
+        "teamId": "11"
+      },
+      {
+        "id": 130,
+        "teamId": "10"
+      },
+      {
+        "id": 131,
+        "teamId": "9"
+      },
+      {
+        "id": 132,
+        "teamId": "8"
+      },
+      {
+        "id": 133,
+        "teamId": "7"
+      },
+      {
+        "id": 134,
+        "teamId": "6"
+      },
+      {
+        "id": 135,
+        "teamId": "5"
+      },
+      {
+        "id": 136,
+        "teamId": "4"
+      },
+      {
+        "id": 137,
+        "teamId": "3"
+      },
+      {
+        "id": 138,
+        "teamId": "2"
+      },
+      {
+        "id": 139,
+        "teamId": "1"
+      },
+      {
+        "id": 140,
+        "teamId": "1"
+      },
+      {
+        "id": 141,
+        "teamId": "2"
+      },
+      {
+        "id": 142,
+        "teamId": "3"
+      },
+      {
+        "id": 143,
+        "teamId": "4"
+      },
+      {
+        "id": 144,
+        "teamId": "5"
+      },
+      {
+        "id": 145,
+        "teamId": "6"
+      },
+      {
+        "id": 146,
+        "teamId": "7"
+      },
+      {
+        "id": 147,
+        "teamId": "8"
+      },
+      {
+        "id": 148,
+        "teamId": "9"
+      },
+      {
+        "id": 149,
+        "teamId": "10"
+      },
+      {
+        "id": 150,
+        "teamId": "11"
+      },
+      {
+        "id": 151,
+        "teamId": "12"
+      },
+      {
+        "id": 152,
+        "teamId": "13"
+      },
+      {
+        "id": 153,
+        "teamId": "14"
+      },
+      {
+        "id": 154,
+        "teamId": "14"
+      },
+      {
+        "id": 155,
+        "teamId": "13"
+      },
+      {
+        "id": 156,
+        "teamId": "12"
+      },
+      {
+        "id": 157,
+        "teamId": "11"
+      },
+      {
+        "id": 158,
+        "teamId": "10"
+      },
+      {
+        "id": 159,
+        "teamId": "9"
+      },
+      {
+        "id": 160,
+        "teamId": "8"
+      },
+      {
+        "id": 161,
+        "teamId": "7"
+      },
+      {
+        "id": 162,
+        "teamId": "6"
+      },
+      {
+        "id": 163,
+        "teamId": "5"
+      },
+      {
+        "id": 164,
+        "teamId": "4"
+      },
+      {
+        "id": 165,
+        "teamId": "3"
+      },
+      {
+        "id": 166,
+        "teamId": "2"
+      },
+      {
+        "id": 167,
+        "teamId": "1"
+      },
+      {
+        "id": 168,
+        "teamId": "1"
+      },
+      {
+        "id": 169,
+        "teamId": "2"
+      },
+      {
+        "id": 170,
+        "teamId": "3"
+      },
+      {
+        "id": 171,
+        "teamId": "4"
+      },
+      {
+        "id": 172,
+        "teamId": "5"
+      },
+      {
+        "id": 173,
+        "teamId": "6"
+      },
+      {
+        "id": 174,
+        "teamId": "7"
+      },
+      {
+        "id": 175,
+        "teamId": "8"
+      },
+      {
+        "id": 176,
+        "teamId": "9"
+      },
+      {
+        "id": 177,
+        "teamId": "10"
+      },
+      {
+        "id": 178,
+        "teamId": "11"
+      },
+      {
+        "id": 179,
+        "teamId": "12"
+      },
+      {
+        "id": 180,
+        "teamId": "13"
+      },
+      {
+        "id": 181,
+        "teamId": "14"
+      }
+    ]
+  },
+  "picks": [
+    {
+      "id": "14",
+      "playerId": "4244",
+      "teamId": "14",
+      "cost": 0
+    },
+    {
+      "id": "20",
+      "playerId": "3704",
+      "teamId": "6",
+      "cost": 0
+    }
+  ],
+  "queue": [],
+  "teams": {
+    "1": {
+      "id": "1",
+      "teamname": "team1",
+      "has_preranks": "0"
+    },
+    "2": {
+      "id": "2",
+      "teamname": "team2",
+      "has_preranks": "0"
+    },
+    "3": {
+      "id": "3",
+      "teamname": "team3",
+      "has_preranks": "0"
+    },
+    "4": {
+      "id": "4",
+      "teamname": "team4",
+      "has_preranks": "0"
+    },
+    "5": {
+      "id": "5",
+      "teamname": "team5",
+      "has_preranks": "0"
+    },
+    "6": {
+      "id": "6",
+      "teamname": "team6",
+      "has_preranks": "0"
+    },
+    "7": {
+      "id": "7",
+      "teamname": "team7",
+      "has_preranks": "0"
+    },
+    "8": {
+      "id": "8",
+      "teamname": "team8",
+      "has_preranks": "0"
+    },
+    "9": {
+      "id": "9",
+      "teamname": "team9",
+      "has_preranks": "0"
+    },
+    "10": {
+      "id": "10",
+      "teamname": "team10",
+      "has_preranks": "0"
+    },
+    "11": {
+      "id": "11",
+      "teamname": "team11",
+      "has_preranks": "0"
+    },
+    "12": {
+      "id": "12",
+      "teamname": "team12",
+      "has_preranks": "0"
+    },
+    "13": {
+      "id": "13",
+      "teamname": "team13",
+      "has_preranks": "0"
+    },
+    "14": {
+      "id": "14",
+      "teamname": "team14",
+      "has_preranks": "0"
+    }
+  },
+  "players": [
+    {
+      "id": "3704",
+      "fname": "LeBron",
+      "lname": "James",
+      "pos": [
+        "SF",
+        "PF",
+        "F",
+        "Util"
+      ],
+      "primary_pos": "SF",
+      "display_pos": "SF,PF",
+      "team_abbr": "PHI",
+      "inj": "",
+      "o_rank": 42,
+      "psr_rank": 105,
+      "auction-value": 24,
+      "average-pick": "38.2",
+      "preseason-average-pick": "38.2",
+      "percent-drafted": "1.00",
+      "projected_stats": {
+        "0": "66",
+        "3": "907",
+        "4": "463",
+        "5": ".510",
+        "6": "278",
+        "7": "210",
+        "8": ".755",
+        "10": "85",
+        "12": "1221",
+        "15": "373",
+        "16": "419",
+        "17": "61",
+        "18": "30",
+        "19": "180"
+      },
+      "season_stats": {
+        "0": "60",
+        "3": "919",
+        "4": "473",
+        "5": ".515",
+        "6": "316",
+        "7": "233",
+        "8": ".737",
+        "10": "77",
+        "12": "1256",
+        "15": "364",
+        "16": "432",
+        "17": "72",
+        "18": "35",
+        "19": "179"
+      },
+      "average_stats": {
+        "0": "60",
+        "3": "15.3",
+        "4": "7.9",
+        "5": ".515",
+        "6": "5.3",
+        "7": "3.9",
+        "8": ".737",
+        "10": "1.3",
+        "12": "20.9",
+        "15": "6.1",
+        "16": "7.2",
+        "17": "1.2",
+        "18": "0.6",
+        "19": "3.0"
+      }
+    },
+    {
+      "id": "4244",
+      "fname": "Kevin",
+      "lname": "Durant",
+      "pos": [
+        "SG",
+        "G",
+        "SF",
+        "PF",
+        "F",
+        "Util"
+      ],
+      "primary_pos": "SG",
+      "display_pos": "SG,SF,PF",
+      "team_abbr": "HOU",
+      "inj": "GTD",
+      "inj_full": "Game Time Decision",
+      "inj_note": "Ankle",
+      "o_rank": 14,
+      "psr_rank": 40,
+      "auction-value": 42,
+      "average-pick": "17.5",
+      "preseason-average-pick": "17.5",
+      "percent-drafted": "1.00",
+      "projected_stats": {
+        "0": "69",
+        "3": "1120",
+        "4": "586",
+        "5": ".523",
+        "6": "360",
+        "7": "310",
+        "8": ".861",
+        "10": "147",
+        "12": "1629",
+        "15": "345",
+        "16": "284",
+        "17": "50",
+        "18": "64",
+        "19": "192"
+      },
+      "season_stats": {
+        "0": "78",
+        "3": "1376",
+        "4": "716",
+        "5": ".520",
+        "6": "467",
+        "7": "408",
+        "8": ".874",
+        "10": "186",
+        "12": "2026",
+        "15": "426",
+        "16": "372",
+        "17": "62",
+        "18": "71",
+        "19": "246"
+      },
+      "average_stats": {
+        "0": "78",
+        "3": "17.6",
+        "4": "9.2",
+        "5": ".520",
+        "6": "6.0",
+        "7": "5.2",
+        "8": ".874",
+        "10": "2.4",
+        "12": "26.0",
+        "15": "5.5",
+        "16": "4.8",
+        "17": "0.8",
+        "18": "0.9",
+        "19": "3.2"
+      }
+    },
+    {
+      "id": "4245",
+      "fname": "Al",
+      "lname": "Horford",
+      "pos": [
+        "PF",
+        "F",
+        "C",
+        "Util"
+      ],
+      "primary_pos": "PF",
+      "display_pos": "PF,C",
+      "team_abbr": "GSW",
+      "inj": "",
+      "o_rank": 248,
+      "psr_rank": 296,
+      "auction-value": 0,
+      "average-pick": "-",
+      "preseason-average-pick": "-",
+      "percent-drafted": "-",
+      "projected_stats": {
+        "0": "53",
+        "3": "257",
+        "4": "113",
+        "5": ".440",
+        "6": "20",
+        "7": "17",
+        "8": ".850",
+        "10": "62",
+        "12": "305",
+        "15": "201",
+        "16": "86",
+        "17": "22",
+        "18": "35",
+        "19": "29"
+      },
+      "season_stats": {
+        "0": "45",
+        "3": "324",
+        "4": "138",
+        "5": ".426",
+        "6": "26",
+        "7": "22",
+        "8": ".846",
+        "10": "74",
+        "12": "372",
+        "15": "219",
+        "16": "116",
+        "17": "30",
+        "18": "51",
+        "19": "42"
+      },
+      "average_stats": {
+        "0": "45",
+        "3": "7.2",
+        "4": "3.1",
+        "5": ".426",
+        "6": "0.6",
+        "7": "0.5",
+        "8": ".846",
+        "10": "1.6",
+        "12": "8.3",
+        "15": "4.9",
+        "16": "2.6",
+        "17": "0.7",
+        "18": "1.1",
+        "19": "0.9"
+      }
+    },
+    {
+      "id": "4246",
+      "fname": "Mike",
+      "lname": "Conley",
+      "pos": [
+        "PG",
+        "G",
+        "Util"
+      ],
+      "primary_pos": "PG",
+      "display_pos": "PG",
+      "team_abbr": "BOS",
+      "inj": "",
+      "o_rank": 305,
+      "psr_rank": 401,
+      "auction-value": 0,
+      "average-pick": "-",
+      "preseason-average-pick": "-",
+      "percent-drafted": "-",
+      "projected_stats": {
+        "0": "51",
+        "3": "169",
+        "4": "58",
+        "5": ".343",
+        "6": "33",
+        "7": "29",
+        "8": ".879",
+        "10": "40",
+        "12": "185",
+        "15": "65",
+        "16": "114",
+        "17": "20",
+        "18": "6",
+        "19": "32"
+      },
+      "season_stats": {
+        "0": "54",
+        "3": "215",
+        "4": "72",
+        "5": ".335",
+        "6": "50",
+        "7": "45",
+        "8": ".900",
+        "10": "56",
+        "12": "245",
+        "15": "93",
+        "16": "157",
+        "17": "35",
+        "18": "14",
+        "19": "34"
+      },
+      "average_stats": {
+        "0": "54",
+        "3": "4.0",
+        "4": "1.3",
+        "5": ".335",
+        "6": "0.9",
+        "7": "0.8",
+        "8": ".900",
+        "10": "1.0",
+        "12": "4.5",
+        "15": "1.7",
+        "16": "2.9",
+        "17": "0.6",
+        "18": "0.3",
+        "19": "0.6"
+      }
+    },
+    {
+      "id": "4247",
+      "fname": "Jeff",
+      "lname": "Green",
+      "pos": [
+        "PF",
+        "F",
+        "C",
+        "Util"
+      ],
+      "primary_pos": "PF",
+      "display_pos": "PF,C",
+      "team_abbr": "HOU",
+      "inj": "NA",
+      "inj_full": "Not Active",
+      "o_rank": 494,
+      "psr_rank": 527,
+      "auction-value": 0,
+      "average-pick": "-",
+      "preseason-average-pick": "-",
+      "percent-drafted": "-",
+      "projected_stats": {
+        "0": "0",
+        "3": "0",
+        "4": "0",
+        "5": ".000",
+        "6": "0",
+        "7": "0",
+        "8": ".000",
+        "10": "0",
+        "12": "0",
+        "15": "0",
+        "16": "0",
+        "17": "0",
+        "18": "0",
+        "19": "0"
+      },
+      "season_stats": {
+        "0": "30",
+        "3": "68",
+        "4": "25",
+        "5": ".368",
+        "6": "5",
+        "7": "5",
+        "8": "1.000",
+        "10": "12",
+        "12": "67",
+        "15": "25",
+        "16": "8",
+        "17": "2",
+        "18": "2",
+        "19": "4"
+      },
+      "average_stats": {
+        "0": "30",
+        "3": "2.3",
+        "4": "0.8",
+        "5": ".368",
+        "6": "0.2",
+        "7": "0.2",
+        "8": "1.000",
+        "10": "0.4",
+        "12": "2.2",
+        "15": "0.8",
+        "16": "0.3",
+        "17": "0.1",
+        "18": "0.1",
+        "19": "0.1"
+      }
+    }
+  ],
+  "settings": {
+    "league_id": 2041416,
+    "name": "Double Dribble - H2H",
+    "num_teams": 14,
+    "pickTime": 30,
+    "is_mock_league": 1,
+    "scoring_type": "head",
+    "league_type": "public",
+    "settings": {
+      "game_season": "2026-27",
+      "is_auction_draft": 0,
+      "max_teams": 14,
+      "draft_type": "live",
+      "draft_pick_duration": 30,
+      "player_pool": "ALL",
+      "roster_positions": [
+        {
+          "position": "PG",
+          "count": 1,
+          "position_type": "P"
+        },
+        {
+          "position": "SG",
+          "count": 1,
+          "position_type": "P"
+        },
+        {
+          "position": "G",
+          "count": 1,
+          "position_type": "P"
+        },
+        {
+          "position": "SF",
+          "count": 1,
+          "position_type": "P"
+        },
+        {
+          "position": "PF",
+          "count": 1,
+          "position_type": "P"
+        },
+        {
+          "position": "F",
+          "count": 1,
+          "position_type": "P"
+        },
+        {
+          "position": "C",
+          "count": 2,
+          "position_type": "P"
+        },
+        {
+          "position": "Util",
+          "count": 2,
+          "position_type": "P"
+        },
+        {
+          "position": "BN",
+          "count": 3,
+          "position_type": "BN"
+        }
+      ],
+      "stat_categories": [
+        {
+          "stat_id": 0,
+          "display_name": "GP",
+          "name": "Games Played",
+          "sort_order": 1,
+          "is_only_display_stat": 1,
+          "is_composite_stat": 0
+        },
+        {
+          "stat_id": 5,
+          "display_name": "FG%",
+          "name": "Field Goal Percentage",
+          "sort_order": 1,
+          "is_only_display_stat": 0,
+          "is_composite_stat": 1
+        },
+        {
+          "stat_id": 8,
+          "display_name": "FT%",
+          "name": "Free Throw Percentage",
+          "sort_order": 1,
+          "is_only_display_stat": 0,
+          "is_composite_stat": 1
+        },
+        {
+          "stat_id": 10,
+          "display_name": "3PTM",
+          "name": "3-point Shots Made",
+          "sort_order": 1,
+          "is_only_display_stat": 0,
+          "is_composite_stat": 0
+        },
+        {
+          "stat_id": 12,
+          "display_name": "PTS",
+          "name": "Points Scored",
+          "sort_order": 1,
+          "is_only_display_stat": 0,
+          "is_composite_stat": 0
+        },
+        {
+          "stat_id": 15,
+          "display_name": "REB",
+          "name": "Total Rebounds",
+          "sort_order": 1,
+          "is_only_display_stat": 0,
+          "is_composite_stat": 0
+        },
+        {
+          "stat_id": 16,
+          "display_name": "AST",
+          "name": "Assists",
+          "sort_order": 1,
+          "is_only_display_stat": 0,
+          "is_composite_stat": 0
+        },
+        {
+          "stat_id": 17,
+          "display_name": "ST",
+          "name": "Steals",
+          "sort_order": 1,
+          "is_only_display_stat": 0,
+          "is_composite_stat": 0
+        },
+        {
+          "stat_id": 18,
+          "display_name": "BLK",
+          "name": "Blocked Shots",
+          "sort_order": 1,
+          "is_only_display_stat": 0,
+          "is_composite_stat": 0
+        },
+        {
+          "stat_id": 19,
+          "display_name": "TO",
+          "name": "Turnovers",
+          "sort_order": 0,
+          "is_only_display_stat": 0,
+          "is_composite_stat": 0
+        }
+      ]
+    }
+  }
+}

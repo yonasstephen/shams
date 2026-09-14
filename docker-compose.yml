@@ -61,6 +61,8 @@ services:
       - ./frontend/vite.config.ts:/app/vite.config.ts
       - ./frontend/postcss.config.js:/app/postcss.config.js
       - ./VERSION:/app/VERSION:ro
+      # Vite serves HTTPS so it is same-site with the HTTPS backend (see vite.config.ts)
+      - ./certs:/app/certs:ro
     command: npm run dev -- --host --force
     depends_on:
       - backend
