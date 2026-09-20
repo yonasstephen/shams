@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "season": "2026-27",
+  "previous_season": "2025-26",
+  "generated_at": "2026-09-20T22:41:46.523124+08:00",
+  "counts": {
+    "projected_players": 802,
+    "players_with_games": 0,
+    "previous_season_players": 591,
+    "scheduled_games": 1207,
+    "mapped_yahoo_ids": 473
+  },
+  "files": {
+    "projections.json.gz": {
+      "bytes": 56984,
+      "raw_bytes": 251494,
+      "sha256": "ff7e271f899563299681008e2621dad6cbc69fcc5e673e61b715e4bc88c0b2c4"
+    },
+    "players.json.gz": {
+      "bytes": 156,
+      "raw_bytes": 201,
+      "sha256": "cf3ff10339dbe997c1d429d79a8d1f887a7b7e1b53bce9d3fbd48d36692afe72"
+    },
+    "players-prev.json.gz": {
+      "bytes": 35433,
+      "raw_bytes": 161782,
+      "sha256": "a0ee7789ed92c97af7151407fe43d61eac71ab0eef6c894fb1cc4e103f5bbf1d"
+    },
+    "schedule.json.gz": {
+      "bytes": 7227,
+      "raw_bytes": 39876,
+      "sha256": "e8d317300c1642ceca13ab3b94b1338a241ab8684ac4a479b46bab48a2695768"
+    },
+    "player-index.json.gz": {
+      "bytes": 11220,
+      "raw_bytes": 29277,
+      "sha256": "2cc14c4f74ddcd1bb33df8628430c0302537c033cf17c59072b239f3c4e1e427"
+    }
+  }
+}
