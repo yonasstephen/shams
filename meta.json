@@ -2,13 +2,14 @@
   "schema": 1,
   "season": "2026-27",
   "previous_season": "2025-26",
-  "generated_at": "2026-09-20T22:41:46.523124+08:00",
+  "generated_at": "2026-09-20T22:44:44.569204+08:00",
   "counts": {
     "projected_players": 802,
     "players_with_games": 0,
     "previous_season_players": 591,
     "scheduled_games": 1207,
-    "mapped_yahoo_ids": 473
+    "mapped_yahoo_ids": 473,
+    "mapped_names": 808
   },
   "files": {
     "projections.json.gz": {
@@ -32,9 +33,9 @@
       "sha256": "e8d317300c1642ceca13ab3b94b1338a241ab8684ac4a479b46bab48a2695768"
     },
     "player-index.json.gz": {
-      "bytes": 11220,
-      "raw_bytes": 29277,
-      "sha256": "2cc14c4f74ddcd1bb33df8628430c0302537c033cf17c59072b239f3c4e1e427"
+      "bytes": 19398,
+      "raw_bytes": 50340,
+      "sha256": "ad11e7a50affa0a3ae6231278b866451c21c03b0f177efde732765167135c3bf"
     }
   }
 }
