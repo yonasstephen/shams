@@ -64,3 +64,6 @@ frontend/build/
 # Test coverage
 .coverage
 
+
+# Static extension feed (built by scripts/build_feed.py, published to the feed branch)
+feed/

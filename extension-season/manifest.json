@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Shams Season Assistant",
+  "version": "0.1.0",
+  "description": "Matchup projections, games remaining and waiver adds from the Shams engine, inline on Yahoo fantasy basketball.",
+  "minimum_chrome_version": "114",
+
+  "permissions": ["storage"],
+
+  "host_permissions": ["https://raw.githubusercontent.com/*"],
+
+  "background": { "service_worker": "background.js" },
+
+  "action": {
+    "default_title": "Shams Season Assistant",
+    "default_popup": "popup/popup.html"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://basketball.fantasysports.yahoo.com/nba/*"],
+      "js": ["content-team.js"],
+      "css": ["overlay.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://basketball.fantasysports.yahoo.com/nba/*/matchup*"],
+      "js": ["content-matchup.js"],
+      "css": ["overlay.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

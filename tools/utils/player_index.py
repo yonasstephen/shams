@@ -58,10 +58,12 @@ def _get_rankings_path(league_key: str) -> Path:
 # =============================================================================
 
 
-def _normalize_name(name: str) -> str:
+def normalize_player_name(name: str) -> str:
     """Normalize a player name for comparison.
 
-    Handles common variations like accents, suffixes, etc.
+    Handles common variations like accents, suffixes, etc. Public because the browser
+    extension has to normalize names the same way to join Yahoo rosters to NBA ids;
+    see scripts/build_feed.py.
 
     Args:
         name: Player name to normalize
@@ -75,6 +77,10 @@ def _normalize_name(name: str) -> str:
     normalized = unicodedata.normalize("NFKD", name)
     ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
     return ascii_text.strip().lower()
+
+
+def _normalize_name(name: str) -> str:
+    return normalize_player_name(name)
 
 
 # =============================================================================
@@ -309,6 +315,19 @@ def get_index_stats() -> dict:
         "unmatched": unmatched,
         "last_updated": index.get("last_updated"),
     }
+
+
+def get_index_snapshot() -> dict:
+    """Return a copy of the whole id index.
+
+    For callers that need the mappings in bulk rather than one lookup at a time,
+    such as ``scripts/build_feed.py`` exporting them for the browser extension.
+
+    Returns:
+        Dictionary with ``yahoo_id_to_nba_id``, ``nba_id_to_yahoo_id``,
+        ``yahoo_names`` and ``last_updated``
+    """
+    return dict(_load_index())
 
 
 def clear_index() -> None:

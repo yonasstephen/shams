@@ -1,0 +1,56 @@
+{
+  "cases": [
+    {
+      "input": "James Harden",
+      "expected": "james harden"
+    },
+    {
+      "input": "Nikola Jokić",
+      "expected": "nikola jokic"
+    },
+    {
+      "input": "Luka Dončić",
+      "expected": "luka doncic"
+    },
+    {
+      "input": "Jaime Jaquez Jr.",
+      "expected": "jaime jaquez jr."
+    },
+    {
+      "input": "Kristaps Porziņģis",
+      "expected": "kristaps porzingis"
+    },
+    {
+      "input": "Alperen Şengün",
+      "expected": "alperen sengun"
+    },
+    {
+      "input": "Dennis Schröder",
+      "expected": "dennis schroder"
+    },
+    {
+      "input": "  Bogdan Bogdanović  ",
+      "expected": "bogdan bogdanovic"
+    },
+    {
+      "input": "Jabari Smith Jr.",
+      "expected": "jabari smith jr."
+    },
+    {
+      "input": "P.J. Washington",
+      "expected": "p.j. washington"
+    },
+    {
+      "input": "De'Aaron Fox",
+      "expected": "de'aaron fox"
+    },
+    {
+      "input": "Karl-Anthony Towns",
+      "expected": "karl-anthony towns"
+    },
+    {
+      "input": "Nicolas Claxton",
+      "expected": "nicolas claxton"
+    }
+  ]
+}

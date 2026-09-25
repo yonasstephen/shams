@@ -1,0 +1,132 @@
+/* Shams overlay. Namespaced so nothing here can leak into Yahoo's own styles. */
+
+.shams-panel {
+  margin: 12px 0;
+  border: 1px solid #d7dbe0;
+  border-radius: 8px;
+  background: #fff;
+  font-family: inherit;
+  overflow: hidden;
+}
+
+.shams-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: linear-gradient(90deg, #1b2a4a 0%, #2d4373 100%);
+  color: #fff;
+}
+
+.shams-title {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.shams-spacer { flex: 1 1 auto; }
+
+.shams-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.16);
+  white-space: nowrap;
+}
+.shams-badge-error { background: #b3261e; }
+.shams-badge-ready { background: rgba(255, 255, 255, 0.16); }
+
+.shams-select,
+.shams-button {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+.shams-select option { color: #111; }
+.shams-button:hover { background: rgba(255, 255, 255, 0.24); }
+
+.shams-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.shams-table th,
+.shams-table td {
+  padding: 5px 6px;
+  text-align: center;
+  border-bottom: 1px solid #eceff3;
+  white-space: nowrap;
+}
+.shams-table th {
+  background: #f5f7fa;
+  font-weight: 600;
+  color: #4a5568;
+}
+.shams-table td.shams-name,
+.shams-table th.shams-name { text-align: left; }
+
+.shams-win { background: #e3f4e6; color: #17632a; font-weight: 700; }
+.shams-loss { background: #fbe6e6; color: #9b2222; }
+.shams-tie { background: #fdf5dd; color: #7a5c00; }
+
+.shams-score {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.shams-split {
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.shams-sub {
+  padding: 8px 12px;
+  font-size: 11px;
+  color: #6b7280;
+  background: #fafbfc;
+  border-top: 1px solid #eceff3;
+}
+
+.shams-columns {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+}
+.shams-column { flex: 1 1 320px; min-width: 0; }
+.shams-column h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: #374151;
+}
+
+/* Games-remaining cell injected into Yahoo's own roster table. */
+.shams-games {
+  display: inline-block;
+  min-width: 34px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 12px;
+}
+.shams-games-none { background: #eceff3; color: #6b7280; }
+.shams-games-thin { background: #fdf3d4; color: #7a5c00; }
+.shams-games-ok { background: #e3f4e6; color: #17632a; }
+.shams-games-heavy { background: #c9ecd1; color: #10521f; }
+
+.shams-source {
+  font-size: 10px;
+  color: #9aa1ab;
+}
+
+.shams-empty {
+  padding: 12px;
+  font-size: 12px;
+  color: #6b7280;
+}
