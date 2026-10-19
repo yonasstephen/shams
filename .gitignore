@@ -66,4 +66,4 @@ frontend/build/
 
 
 # Static extension feed (built by scripts/build_feed.py, published to the feed branch)
-feed/
+/feed/
