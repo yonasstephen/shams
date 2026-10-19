@@ -19,6 +19,7 @@ import { calculateProjectedPoints, sumContributions, type Totals } from "../src/
 import { buildValuationContext, totalValue, valuePlayer } from "../src/engine/valuation";
 import { optimizeRosterPositions } from "../src/engine/rosterOptimizer";
 import { playerAverages } from "../src/engine/statWindows";
+import { minuteTrend, playerForm, type Aggregation, type FormWindow } from "../src/engine/playerForm";
 import { normalizePlayerName } from "../src/engine/playerIdentity";
 import type { GameRow, PlayersFile, StatLine } from "../src/feed/types";
 import type { StatCategory } from "../src/yahoo/types";
@@ -138,6 +139,48 @@ describe("stat windows", () => {
         }
       });
     }
+  }
+});
+
+describe("player form", () => {
+  // The web app's waiver lookbacks, averaged and summed, with minutes. Python counts games
+  // a player sat (blank minutes) as games; at least one case has those inside the window.
+  const today = statWindows.today;
+
+  for (const testCase of statWindows.cases) {
+    const entry = { name: testCase.name, games: testCase.games as GameRow[] };
+
+    for (const [aggregation, byMode] of Object.entries(testCase.form)) {
+      for (const [window, expected] of Object.entries(byMode as Record<string, StatLine & { minutes: number; games: number }>)) {
+        it(`${testCase.name} ${window} ${aggregation} matches Python`, () => {
+          const form = playerForm({
+            entry,
+            previous: undefined,
+            window: window as FormWindow,
+            aggregation: aggregation as Aggregation,
+            today,
+          });
+
+          expect(form.source).toBe("window");
+          expect(form.games).toBe(expected.games);
+          // The feed rounds each game's minutes to the hundredth.
+          expect(form.minutes, "minutes").toBeCloseTo(expected.minutes, 1);
+          for (const field of [
+            "fgm", "fga", "fg_pct", "ftm", "fta", "ft_pct", "threes",
+            "points", "rebounds", "assists", "steals", "blocks", "turnovers",
+          ] as const) {
+            expect(form.stats?.[field], `${window} ${field}`).toBeCloseTo(expected[field], 6);
+          }
+        });
+      }
+    }
+
+    it(`${testCase.name} minute trend matches Python`, () => {
+      const trend = minuteTrend(entry.games, today);
+      expect(trend?.last).toBeCloseTo(testCase.trend.last, 1);
+      expect(trend?.priorAverage).toBeCloseTo(testCase.trend.priorAverage, 1);
+      expect(trend?.delta).toBeCloseTo(testCase.trend.delta, 1);
+    });
   }
 });
 

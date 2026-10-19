@@ -184,7 +184,14 @@ def build_players(season: str, tail_days: int, today: date) -> Dict[str, object]
             "games": tail,
         }
         if season_stats:
-            entry["season_avg"] = _round_stats(season_stats, SEASON_STATS)
+            season_avg = _round_stats(season_stats, SEASON_STATS)
+            if games:
+                # The season average carries no minutes, so average them over the same
+                # cached games it was computed from; the tail is too short for "season".
+                season_avg["mpg"] = round(
+                    sum(_parse_minutes(game.get("MIN")) for game in games) / len(games), 2
+                )
+            entry["season_avg"] = season_avg
         eligibility = boxscore_cache.load_player_eligibility(nba_id, season)
         if eligibility:
             entry["eligible_positions"] = eligibility

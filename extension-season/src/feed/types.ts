@@ -17,6 +17,7 @@ export interface FeedMeta {
 export interface StatLine {
   games_played?: number;
   gp?: number;
+  /** Minutes per game. Season averages carry it only in feeds built since it was added. */
   mpg?: number;
   fgm: number;
   fga: number;

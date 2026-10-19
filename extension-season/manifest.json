@@ -34,6 +34,12 @@
       "js": ["content-tradehub.js"],
       "css": ["overlay.css"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://basketball.fantasysports.yahoo.com/nba/*/transactions*"],
+      "js": ["content-transactions.js"],
+      "css": ["overlay.css"],
+      "run_at": "document_idle"
     }
   ]
 }

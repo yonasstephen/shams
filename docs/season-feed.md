@@ -11,8 +11,8 @@ day stale still projects correctly.
 | --- | --- |
 | `meta.json` | schema version, season, `generated_at`, per-file sizes and sha256 |
 | `projections.json.gz` | Marcel+residual per-game line for every projected player (`scripts/build_projections.py`), keyed by NBA id. The preseason and early-season baseline. |
-| `players.json.gz` | Season averages plus a raw 35-day game-log tail per player |
-| `players-prev.json.gz` | Previous season's averages, for players with no current-season sample |
+| `players.json.gz` | Season averages (with `mpg`, averaged over the same games) plus a raw 35-day game-log tail per player |
+| `players-prev.json.gz` | Previous season's averages (with `mpg`), for players with no current-season sample |
 | `schedule.json.gz` | date → `[home, away, game_id, postponed]`, by tricode |
 | `player-index.json.gz` | Yahoo id → NBA id, plus NBA id → name |
 

@@ -205,3 +205,39 @@
   box-shadow: inset 3px 0 0 #2d4373;
 }
 .shams-table tr.shams-injured td { color: #9aa1ab; }
+
+/* Player form (Transactions page). Tones follow the web app's stat colours. */
+.shams-tone-good { color: #15803d; font-weight: 600; }
+.shams-tone-fair { color: #a16207; font-weight: 600; }
+.shams-tone-poor { color: #b91c1c; font-weight: 600; }
+.shams-tone-dim { color: #9aa1ab; }
+
+.shams-table th.shams-sortable { cursor: pointer; user-select: none; }
+.shams-table th.shams-sortable:hover { background: #eceff3; }
+.shams-form-table td.shams-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+
+.shams-move {
+  display: inline-block;
+  width: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+.shams-move-add { color: #15803d; }
+.shams-move-drop { color: #b91c1c; }
+.shams-move-trade { color: #2d4373; }
+.shams-move-team { margin-left: 4px; color: #4a5568; }
+
+/* Minutes chip beside each name in Yahoo's own transaction list. */
+.shams-inline {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: #f1f4f8;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  cursor: help;
+}
+.shams-inline-window { color: #6b7280; }

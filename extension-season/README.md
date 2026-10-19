@@ -24,6 +24,7 @@ manifest, deliberately: the draft assistant must not wobble before draft day.
 | Team / roster | A `SHAMS` column: games remaining this week / total, colour-coded |
 | Matchup | Projected per-category totals for both teams, the projected category score, banked vs remaining split, and per-player contributions |
 | Matchup | Best adds: free agents ranked by the categories they would flip — and the ones they would cost you |
+| Transactions | Player form for everyone added, dropped or traded: last game, last 3 or 7 games, last 7, 14 or 30 days, or season, averaged or totalled, with minutes and the minute trend, as in the web app's waiver table; plus a minutes chip beside each name |
 | Trade Hub | Trade insights: any team's strengths, neutral categories, weaknesses and needs, and a league grid ranking every team by category or roster slot ([docs/trade-insights.md](../docs/trade-insights.md)) |
 
 Projection window is switchable (season, last 3, last 7, last 7 days, last 30 days),
@@ -58,7 +59,8 @@ pinned together by fixtures.
 them to `test/fixtures/`. `npm test` asserts the TypeScript produces the same numbers:
 category W-L-T (including the FG%/FT% volume tiebreak), greedy roster optimization, team
 totals from pooled shooting volume, rolling-window averages for real players across all
-four modes, and name normalization.
+four modes, the waiver lookbacks (averaged and summed, with minutes and the minute trend),
+and name normalization.
 
 **After changing projection math on either side, regenerate and re-run both:**
 

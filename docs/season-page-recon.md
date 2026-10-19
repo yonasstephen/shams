@@ -129,3 +129,27 @@ reload. Once rendered, sections carry stable `data-tst` hooks: `hub-team-analysi
 
 The Shams panel is inserted **before** `#trade_hub`, not inside it, so React never owns or
 re-renders it and the panel does not wait for Yahoo's spinner.
+
+## League transactions (`/nba/{league}/transactions`)
+
+Server-rendered, no React and no API call needed: the page itself names every player and
+his Yahoo id. Filters (`?transactionsfilter=add|drop|trade|faab`) and paging ("Next 25")
+are full page loads, so the overlay reads the table once at load.
+
+- `table.Tst-transaction-table`, inside a `div.Mod`, after the `Tst-transaction-nav` tabs.
+  One `tbody > tr` per transaction, newest first.
+- Players are plain links to `https://sports.yahoo.com/nba/players/{yahoo_id}`; the news
+  icon beside each is also a link (`…/players/{id}/news`, class `playernote`) and has to be
+  told apart.
+- **Add/drop rows**: each player sits in a `div.Pbot-xs` with `span.F-position`
+  ("TOR - PG,SG"), an optional `span.F-injury` ("Q", "O"…) and an `h6` naming the source or
+  destination ("Free Agent", "Waivers", "To Waivers"). The first cell holds one icon per
+  player, in player order, titled "Added Player" or "Dropped Player".
+- **Trade rows**: the first cell is a `rowspan` with `span.F-trade` and no title, so the
+  second row of a trade has no icon cell at all. Players sit in a `p`; a cell reads
+  "Traded to".
+- The last cell names the fantasy team (`span.Grid-u > a`; `.Tst-team-name` on add/drop
+  rows only) and the time (`.F-timestamp`, "Oct 18, 11:29 am").
+
+The Shams panel goes before the `div.Mod`; the minutes chips go after each player's
+injury tag, or his position when he has none.

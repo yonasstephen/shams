@@ -15,6 +15,7 @@ const entries = {
   "content-team": "src/content/team.ts",
   "content-matchup": "src/content/matchup.ts",
   "content-tradehub": "src/content/tradeHub.ts",
+  "content-transactions": "src/content/transactions.ts",
   "popup/popup": "src/popup/popup.ts",
 };
 

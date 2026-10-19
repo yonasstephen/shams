@@ -40,7 +40,7 @@ function parseMode(mode: ProjectionMode): { games: number | null; days: number |
   return match[2] === "d" ? { games: null, days: size } : { games: size, days: null };
 }
 
-function isoDaysBefore(today: string, days: number): string {
+export function isoDaysBefore(today: string, days: number): string {
   const date = new Date(`${today}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() - days);
   return date.toISOString().slice(0, 10);

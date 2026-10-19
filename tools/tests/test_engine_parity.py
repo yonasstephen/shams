@@ -295,18 +295,36 @@ def test_write_valuation_fixture():
     assert by_id["v.3"][ids_by_name["turnovers"]] > 0 > by_id["v.2"][ids_by_name["turnovers"]]
 
 
+#: The web app's waiver lookbacks that the extension's form table offers from the game tail.
+FORM_MODES = ("last", "last3", "last7", "last7d", "last14d", "last30d")
+
+
+def _window_stats(stats) -> Dict[str, float]:
+    return {
+        "fgm": stats.fgm, "fga": stats.fga, "fg_pct": stats.fg_pct,
+        "ftm": stats.ftm, "fta": stats.fta, "ft_pct": stats.ft_pct,
+        "threes": stats.threes, "points": stats.points, "rebounds": stats.rebounds,
+        "assists": stats.assists, "steals": stats.steals, "blocks": stats.blocks,
+        "turnovers": stats.turnovers,
+    }
+
+
 @pytest.mark.unit
-def test_write_stat_window_fixture():
+def test_write_stat_window_fixture(monkeypatch):  # pylint: disable=too-many-locals
     """Real game logs plus Python's per-game averages for every projection mode.
 
     This is the check that matters most for day-to-day numbers: the extension recomputes
     last3/last7/last7d/last30d in the browser from the same game rows the feed ships, and
-    it has to land on the same averages ``compute_player_stats`` produces.
+    it has to land on the same averages ``compute_player_stats`` produces. The ``form``
+    block adds the rest of the web app's waiver lookbacks, summed as well as averaged,
+    with minutes and the minute trend.
     """
-    from datetime import date
+    from datetime import date, timedelta
 
     from scripts.build_feed import GAME_FIELDS, _compact_game
     from tools.boxscore import boxscore_cache
+    from tools.player import player_fetcher
+    from tools.player.player_minutes_trend import compute_minute_trend
     from tools.player.player_stats import compute_player_stats
     from tools.schedule.schedule_fetcher import get_season_start_date
 
@@ -332,10 +350,23 @@ def test_write_stat_window_fixture():
     # Busiest players first, so the day-based windows land on someone who was actually
     # playing around the anchor date rather than a veteran who had stopped.
     candidates.sort(key=lambda entry: len(entry[2]), reverse=True)
-    candidates = candidates[:5]
+
+    # Box scores list games a player sat with blank minutes, and Python counts them as
+    # games. Make sure one case has such a game inside the 14-day window.
+    recent_cutoff = (anchor - timedelta(days=14)).isoformat()
+    sat_recently = next(
+        (
+            entry for entry in candidates[5:]
+            if any(g.get("MIN") in ("", None) and str(g.get("date")) >= recent_cutoff for g in entry[2])
+        ),
+        None,
+    )
+    candidates = candidates[:5] + ([sat_recently] if sat_recently else [])
 
     if not candidates:
         pytest.skip("no player has enough cached games before the anchor date")
+
+    original_fetch = player_fetcher.fetch_player_stats_from_cache
 
     cases = []
     for player_id, player_name, games in candidates:
@@ -350,15 +381,32 @@ def test_write_stat_window_fixture():
             )
             if stats is None:
                 continue
-            expected[mode] = {
-                "fgm": stats.fgm, "fga": stats.fga, "fg_pct": stats.fg_pct,
-                "ftm": stats.ftm, "fta": stats.fta, "ft_pct": stats.ft_pct,
-                "threes": stats.threes, "points": stats.points, "rebounds": stats.rebounds,
-                "assists": stats.assists, "steals": stats.steals, "blocks": stats.blocks,
-                "turnovers": stats.turnovers,
-            }
+            expected[mode] = _window_stats(stats)
 
-        cases.append({"nbaId": str(player_id), "name": player_name, "games": rows, "expected": expected})
+        form: Dict[str, Dict[str, Dict[str, float]]] = {"avg": {}, "sum": {}}
+        for agg_mode, by_mode in form.items():
+            for mode in FORM_MODES:
+                stats = compute_player_stats(
+                    player_id=player_id, season=season, mode=mode,
+                    season_start=season_start, today=anchor, agg_mode=agg_mode,
+                )
+                if stats is not None:
+                    by_mode[mode] = {**_window_stats(stats), "minutes": stats.minutes, "games": stats.games_count}
+
+        # The trend reads the current season up to date.today(); pin it to the fixture's
+        # season and anchor so it is the trend the web app showed on that day.
+        with monkeypatch.context() as patch:
+            patch.setattr(
+                player_fetcher, "fetch_player_stats_from_cache",
+                lambda pid, _season, _start, _end: original_fetch(pid, season, season_start, anchor),
+            )
+            last, prior, delta, _ = compute_minute_trend(player_id, "Regular Season")
+        trend = {"last": last, "priorAverage": prior, "delta": delta}
+
+        cases.append({
+            "nbaId": str(player_id), "name": player_name, "games": rows,
+            "expected": expected, "form": form, "trend": trend,
+        })
 
     FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
     (FIXTURE_DIR / "stat-windows.json").write_text(
@@ -371,6 +419,7 @@ def test_write_stat_window_fixture():
     )
 
     assert cases and all(case["expected"].get("season") for case in cases)
+    assert all(case["form"]["avg"].get("last") for case in cases)
 
 
 @pytest.mark.unit
