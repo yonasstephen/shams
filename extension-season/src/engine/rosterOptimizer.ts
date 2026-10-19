@@ -8,7 +8,7 @@ export interface OptimizablePlayer {
   eligiblePositions: string[];
 }
 
-function canFillSlot(positions: string[], slot: string): boolean {
+export function canFillSlot(positions: string[], slot: string): boolean {
   if (slot === "Util") return true;
   if (slot === "G") return positions.includes("PG") || positions.includes("SG");
   if (slot === "F") return positions.includes("SF") || positions.includes("PF");

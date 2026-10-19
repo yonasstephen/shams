@@ -195,6 +195,106 @@ def test_write_team_totals_fixture():
     assert totals["8"] == pytest.approx((16 + 6 + 10) / (18 + 14 + 11))
 
 
+#: Per-game lines chosen to stress the valuation: a rim-protecting big who can't shoot free
+#: throws, a high-volume guard, an efficient player on almost no attempts, a player with no
+#: free-throw attempts at all, and two players ranked outside the reference pool.
+VALUATION_PLAYERS = [
+    # id, fgm, fga, ftm, fta, threes, pts, reb, ast, stl, blk, to
+    ("v.1", 9.8, 16.0, 3.1, 5.6, 0.2, 22.9, 12.1, 2.4, 0.9, 2.6, 2.1),
+    ("v.2", 9.4, 21.0, 7.2, 8.0, 3.6, 29.6, 4.8, 7.9, 1.4, 0.4, 3.6),
+    ("v.3", 1.2, 2.0, 0.3, 0.4, 0.0, 2.7, 2.2, 0.4, 0.2, 0.3, 0.3),
+    ("v.4", 4.1, 9.3, 0.0, 0.0, 2.1, 10.3, 3.1, 1.6, 0.8, 0.2, 0.9),
+    ("v.5", 6.8, 15.2, 4.4, 5.0, 2.9, 20.9, 5.6, 5.1, 1.7, 0.6, 2.4),
+    ("v.6", 5.2, 10.1, 2.0, 2.9, 0.4, 12.8, 8.7, 1.9, 0.7, 1.4, 1.2),
+    ("v.7", 3.6, 8.8, 1.9, 2.2, 2.4, 11.5, 2.9, 4.4, 1.1, 0.3, 1.5),
+    ("v.8", 7.7, 17.9, 5.3, 6.1, 1.8, 22.5, 6.0, 3.3, 1.0, 0.5, 2.8),
+    ("v.9", 2.9, 5.4, 1.1, 1.9, 0.1, 6.9, 6.4, 0.9, 0.5, 1.8, 0.8),
+    ("v.10", 4.6, 11.0, 2.6, 3.0, 2.7, 14.5, 3.4, 6.2, 1.3, 0.4, 2.0),
+    ("v.11", 2.2, 5.1, 0.9, 1.2, 1.0, 6.3, 2.1, 1.2, 0.4, 0.1, 0.6),
+    ("v.12", 1.9, 4.8, 0.4, 0.9, 1.1, 5.3, 1.9, 0.8, 0.3, 0.2, 0.5),
+]
+
+#: Players ranked past this are valued but not part of the reference pool.
+VALUATION_POOL_SIZE = 10
+
+
+@pytest.mark.unit
+def test_write_valuation_fixture():
+    """Category z-scores from ``value_model``, for the TS port to match.
+
+    The trade insights value every rostered player with this, so a drift here would move
+    every team's strengths at once.
+    """
+    from tools.draft import stat_ids, value_model
+    from tools.draft.draft_state import DraftPlayer
+
+    categories = stat_ids.parse_stat_categories(STAT_META)
+    ids_by_name = {category.name: str(category.stat_id) for category in categories}
+
+    players = []
+    for rank, (player_id, fgm, fga, ftm, fta, threes, pts, reb, ast, stl, blk, tov) in enumerate(
+        VALUATION_PLAYERS, start=1
+    ):
+        line = {
+            "games_played": 70.0,
+            "fgm": fgm, "fga": fga, "fg_pct": fgm / fga if fga else 0.0,
+            "ftm": ftm, "fta": fta, "ft_pct": ftm / fta if fta else 0.0,
+            "threes": threes, "points": pts, "rebounds": reb, "assists": ast,
+            "steals": stl, "blocks": blk, "turnovers": tov,
+        }
+        players.append(
+            DraftPlayer(player_id=player_id, first_name=player_id, last_name="",
+                        projected_rank=rank, projected=line)
+        )
+
+    context = value_model.build_context(players, categories, VALUATION_POOL_SIZE)
+    pool = value_model.select_reference_pool(players, VALUATION_POOL_SIZE)
+    punt = {"turnovers", "ft_pct"}
+
+    cases = []
+    for player in players:
+        valued = value_model.value_player(player, context)
+        cases.append({
+            "id": player.player_id,
+            "line": {key: value for key, value in player.projected.items() if key != "games_played"},
+            "expected": {
+                "z": {ids_by_name[name]: z for name, z in valued.category_z.items()},
+                "total": valued.total(),
+                "totalPunting": valued.total(punt),
+            },
+        })
+
+    FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
+    (FIXTURE_DIR / "valuation.json").write_text(
+        json.dumps(
+            {
+                "statMeta": STAT_META,
+                "pool": [player.player_id for player in pool],
+                "punt": sorted(ids_by_name[name] for name in punt),
+                "context": {
+                    "ratioBaselines": {ids_by_name[k]: v for k, v in context.ratio_baselines.items()},
+                    "means": {ids_by_name[k]: v for k, v in context.means.items()},
+                    "stddevs": {ids_by_name[k]: v for k, v in context.stddevs.items()},
+                },
+                "cases": cases,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    # The fixture must exercise what it claims: players outside the pool, a player with no
+    # free throws, and turnovers inverted so fewer is worth more.
+    assert len(pool) == VALUATION_POOL_SIZE < len(players)
+    by_id = {case["id"]: case["expected"]["z"] for case in cases}
+    assert by_id["v.4"][ids_by_name["ft_pct"]] == pytest.approx(
+        -context.means["ft_pct"] / context.stddevs["ft_pct"]
+    )
+    assert by_id["v.3"][ids_by_name["turnovers"]] > 0 > by_id["v.2"][ids_by_name["turnovers"]]
+
+
 @pytest.mark.unit
 def test_write_stat_window_fixture():
     """Real game logs plus Python's per-game averages for every projection mode.

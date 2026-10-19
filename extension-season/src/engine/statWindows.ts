@@ -19,7 +19,7 @@ export const MODE_LABELS: Record<ProjectionMode, string> = {
 };
 
 /** Where a player's numbers came from, so the overlay can be honest about it. */
-export type StatSource = "window" | "season" | "projection" | "previous" | "none";
+export type StatSource = "window" | "season" | "blend" | "projection" | "previous" | "none";
 
 export interface PlayerAverages {
   stats: StatLine;
@@ -169,5 +169,65 @@ export function playerAverages(input: AveragesInput): PlayerAverages {
     return { stats: entry.season_avg, source: "season", gamesInSample: seasonGames };
   }
 
+  return { stats: { ...EMPTY }, source: "none", gamesInSample: 0 };
+}
+
+/** Games of evidence the preseason line is worth once the season is under way.
+ *
+ * Borrowed from REGRESSION_GAMES in tools/projections/marcel.py, which regresses playing
+ * time with the same weight. Not yet backtested for this use; docs/trade-insights.md has
+ * the plan for doing so. */
+export const PRIOR_GAMES = 25;
+
+const COUNTING_FIELDS = [
+  "fgm", "fga", "ftm", "fta", "threes", "points", "rebounds", "assists", "steals", "blocks", "turnovers",
+] as const;
+
+/** Shrink a season sample toward a prior line, weighting the sample by games behind it. */
+export function blendLines(sample: StatLine, sampleGames: number, prior: StatLine, priorGames: number): StatLine {
+  const weight = sampleGames / (sampleGames + priorGames);
+  const line: StatLine = { ...EMPTY, games_played: sampleGames };
+  for (const field of COUNTING_FIELDS) {
+    line[field] = weight * (sample[field] ?? 0) + (1 - weight) * (prior[field] ?? 0);
+  }
+  // Percentages from the blended volume, never a blend of percentages.
+  line.fg_pct = line.fga > 0 ? line.fgm / line.fga : 0;
+  line.ft_pct = line.fta > 0 ? line.ftm / line.fta : 0;
+  return line;
+}
+
+export interface RestOfSeasonInput {
+  nbaId: string | null;
+  players: PlayersFile;
+  playersPrev: PlayersFile;
+  projections: Record<string, ProjectionEntry>;
+  priorGames?: number;
+}
+
+/** A player's expected per-game line for the rest of the season: the season so far, shrunk
+ *  toward the preseason projection — or last season, for anyone the projection missed — by
+ *  how many games back it. A fixed window answers "how is he playing"; this answers "what
+ *  will he do from here", which is the question a trade asks. */
+export function restOfSeasonAverages(input: RestOfSeasonInput): PlayerAverages {
+  const { nbaId, players, playersPrev, projections } = input;
+  if (!nbaId) return { stats: { ...EMPTY }, source: "none", gamesInSample: 0 };
+
+  const season = players.players[nbaId]?.season_avg;
+  const seasonGames = season?.games_played ?? 0;
+  const projected = projections[nbaId]?.stats;
+  const previous = playersPrev.players[nbaId]?.season_avg;
+  const prior = projected ?? previous;
+
+  if (season && seasonGames > 0) {
+    if (!prior) return { stats: season, source: "season", gamesInSample: seasonGames };
+    return {
+      stats: blendLines(season, seasonGames, prior, input.priorGames ?? PRIOR_GAMES),
+      source: "blend",
+      gamesInSample: seasonGames,
+    };
+  }
+
+  if (projected) return { stats: projected, source: "projection", gamesInSample: 0 };
+  if (previous) return { stats: previous, source: "previous", gamesInSample: previous.games_played ?? 0 };
   return { stats: { ...EMPTY }, source: "none", gamesInSample: 0 };
 }

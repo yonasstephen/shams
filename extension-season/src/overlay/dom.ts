@@ -61,3 +61,23 @@ export function whenPresent(selector: () => Element | null, timeoutMs = 10000): 
 export function statusBadge(state: "loading" | "ready" | "error", detail: string): HTMLElement {
   return el("span", { class: `shams-badge shams-badge-${state}`, text: detail, title: detail });
 }
+
+/** A row of buttons acting as one choice, the active one highlighted. */
+export function toggle<T extends string>(
+  options: [T, string][],
+  active: T,
+  onChange: (value: T) => void,
+): HTMLElement {
+  return el(
+    "span",
+    { class: "shams-tabs" },
+    options.map(([value, label]) => {
+      const button = el("button", {
+        class: value === active ? "shams-button shams-button-active" : "shams-button",
+        text: label,
+      });
+      button.addEventListener("click", () => onChange(value));
+      return button;
+    }),
+  );
+}

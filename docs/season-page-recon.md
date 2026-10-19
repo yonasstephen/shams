@@ -69,3 +69,63 @@ from Yahoo for every schedule lookup and only takes per-game averages from the f
 
 With the same league and week, the games-remaining column agreed with WZRD's own column on
 all 15 players (2/2, 3/3, …), which is a useful independent check of the schedule math.
+
+## Trade Hub (`/nba/{league}/trade_hub`)
+
+Verified 2026-10-17 against league 2071, signed in without Yahoo Fantasy Plus. Yahoo's help
+pages describe the Trade Hub in one sentence per section; everything below comes from the
+page's own API calls and its bundle (`react_fantasy_tradehub.*.js`).
+
+### What Yahoo computes, and what it gates
+
+Every Trade Hub insight is **positional, by roster slot** (PG, SG, G, SF, PF, F, C, Util),
+counted over **starters only**. The page asks for:
+
+```
+/league/{lk};out=settings/standings/teams;out=recommended_trade_partners,standings,players;
+    positional_ranks.starters_only=1;recommended_trade_partners.count=1
+```
+
+With Plus, the bundle's `PREMIUM_QUERY` adds `positional_ranks` to `out=` and asks for three
+partners. Each team then carries `positional_ranks[]` entries of
+`{position, grade: "strong"|"neutral"|"weak", rank, starting_players, bench_players}`.
+
+| Section | Free | Plus |
+| --- | --- | --- |
+| Team analysis | team name | slots bucketed Strengths / Neutral / Weaknesses with a league rank, for any team |
+| League rosters | team list | team × slot rank grid, expandable to starters and bench |
+| Top 3 trade partners | partner #1 | partners #2–3 and each partner's needs |
+| Players marked available | list and owner | current and projected position rank, owner's needs |
+| Most traded (all Yahoo leagues, today) | trade count, owner in your league | as above |
+
+- **Needs** (`getTeamNeeds`): up to three slots, weak ones first, padded with neutral ones.
+- **Partner count is enforced by the server.** Asking for `count=3` without Plus still returns
+  one `recommended_trade_partner` per team. How Yahoo matches partners is not visible.
+- **Player position ranks** come from `out=ranks;ranks_by_position=season,projected_season_remaining`:
+  `player_rank` entries with `rank_type` `S` (season to date) or `PSR` (projected rest of
+  season) plus a `rank_position`. Without Plus the page sends `ranks_by_position=` empty.
+- **Most traded**: `/game/{gk}/leagues;league_keys={lk};out=settings;/players;status=T;
+  sort=transactions_trades;sort_type=transaction_trends;sort_date=today;…;out=transactions,ownership`
+  — free. `transactions.trades` is the count across all Yahoo leagues today.
+- **Trading block**: the same players collection with `trading_block=1;out=trading_block` — free.
+
+Shams does not request the Plus-only fields. The extension computes its own insights from
+the league's categories instead; see `docs/trade-insights.md`.
+
+### Endpoints the extension uses
+
+| Path | Gives |
+| --- | --- |
+| `/league/{lk}/teams/roster` | every roster in one call: 18 teams, each player with `selected_position` and `eligible_positions`, plus `managers[].manager.nickname` |
+| `/league/{lk};out=settings` | the league's `start_date`, `end_date`, `num_teams`; the settings' `trade_end_date` and `playoff_start_week` |
+
+### DOM anchors
+
+`#trade_hub` (inside `#yspmaincontent`) is the React mount point. It is server-rendered
+empty, shows a spinner while the bundle fetches, and sometimes sits on that spinner until a
+reload. Once rendered, sections carry stable `data-tst` hooks: `hub-team-analysis`,
+`hub-league-rosters`, `hub-league-roster-row-{team_key}`, `hub-ideal-trade-partners-*`,
+`hub-trading-block`, `hub-trading-block-player-row-{player_key}`.
+
+The Shams panel is inserted **before** `#trade_hub`, not inside it, so React never owns or
+re-renders it and the panel does not wait for Yahoo's spinner.

@@ -20,6 +20,13 @@ export interface LeagueSettings {
   currentWeek: number | null;
   startWeek: number | null;
   endWeek: number | null;
+  numTeams: number | null;
+  /** First and last day of the fantasy season, YYYY-MM-DD; empty when Yahoo omits them. */
+  startDate: string;
+  endDate: string;
+  /** Last day trades can be made, YYYY-MM-DD. */
+  tradeEndDate: string;
+  playoffStartWeek: number | null;
 }
 
 export interface YahooPlayer {
@@ -41,6 +48,15 @@ export interface YahooTeam {
   name: string;
   /** Week totals Yahoo itself shows, per stat id. */
   stats?: Record<string, number>;
+}
+
+/** One team's roster as part of a league-wide fetch. */
+export interface LeagueRoster {
+  teamKey: string;
+  teamId: string;
+  name: string;
+  manager: string;
+  players: YahooPlayer[];
 }
 
 export interface Matchup {

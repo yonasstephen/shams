@@ -130,3 +130,78 @@
   font-size: 12px;
   color: #6b7280;
 }
+
+/* Trade insights panel (Trade Hub page). */
+.shams-tabs { display: inline-flex; gap: 4px; }
+.shams-button-active {
+  background: rgba(255, 255, 255, 0.32);
+  font-weight: 700;
+}
+.shams-summary .shams-button {
+  border-color: #d7dbe0;
+  background: #fff;
+  color: #374151;
+}
+.shams-summary .shams-button-active {
+  background: #2d4373;
+  border-color: #2d4373;
+  color: #fff;
+}
+
+.shams-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #374151;
+  border-bottom: 1px solid #eceff3;
+}
+
+.shams-select-light {
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid #d7dbe0;
+  border-radius: 5px;
+  background: #fff;
+  color: #111;
+  max-width: 100%;
+}
+
+.shams-label { font-weight: 600; color: #4a5568; }
+
+.shams-chip {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #eceff3;
+  color: #374151;
+}
+.shams-chip-strong { background: #2d4373; color: #fff; }
+.shams-chip-il { margin-left: 6px; background: #fbe6e6; color: #9b2222; }
+
+/* Grades: top third, middle, bottom third of the league. */
+.shams-grade-strong { background: #e3f4e6; color: #17632a; font-weight: 700; }
+.shams-grade-neutral { color: #4a5568; }
+.shams-grade-weak { background: #fbe6e6; color: #9b2222; }
+
+.shams-grade-column .shams-table td { border-bottom-color: #f3f4f6; }
+
+/* Per-category z-scores: how much a player helps or hurts, in league deviations. */
+.shams-z-pos2 { background: #c9ecd1; color: #10521f; font-weight: 700; }
+.shams-z-pos1 { background: #eaf7ed; color: #17632a; }
+.shams-z-neg1 { background: #fdf0f0; color: #9b2222; }
+.shams-z-neg2 { background: #f6d5d5; color: #7f1d1d; font-weight: 700; }
+
+.shams-scroll { overflow-x: auto; }
+
+.shams-table tr.shams-clickable { cursor: pointer; }
+.shams-table tr.shams-clickable:hover td.shams-name { text-decoration: underline; }
+.shams-table tr.shams-mine td.shams-name {
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 #2d4373;
+}
+.shams-table tr.shams-injured td { color: #9aa1ab; }

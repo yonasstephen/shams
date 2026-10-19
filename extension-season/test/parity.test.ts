@@ -13,8 +13,10 @@ import rosterOptimizer from "./fixtures/roster-optimizer.json";
 import teamTotals from "./fixtures/team-totals.json";
 import statWindows from "./fixtures/stat-windows.json";
 import nameNormalization from "./fixtures/name-normalization.json";
+import valuation from "./fixtures/valuation.json";
 
 import { calculateProjectedPoints, sumContributions, type Totals } from "../src/engine/project";
+import { buildValuationContext, totalValue, valuePlayer } from "../src/engine/valuation";
 import { optimizeRosterPositions } from "../src/engine/rosterOptimizer";
 import { playerAverages } from "../src/engine/statWindows";
 import { normalizePlayerName } from "../src/engine/playerIdentity";
@@ -145,6 +147,41 @@ describe("name normalization", () => {
   for (const testCase of nameNormalization.cases) {
     it(`matches Python: ${testCase.input.trim()}`, () => {
       expect(normalizePlayerName(testCase.input)).toBe(testCase.expected);
+    });
+  }
+});
+
+describe("valuation", () => {
+  // value_model.py chooses its reference pool by Yahoo rank; the extension's pool is the
+  // league's rostered players, so the fixture names the pool and both sides score it.
+  const categories = toCategories(valuation.statMeta as RawStat[]);
+  const lines = Object.fromEntries(valuation.cases.map((testCase) => [testCase.id, testCase.line as StatLine]));
+  const context = buildValuationContext(
+    valuation.pool.map((id) => lines[id] as StatLine),
+    categories,
+  );
+
+  it("builds the same league baselines", () => {
+    for (const [field, expected] of [
+      ["ratioBaselines", valuation.context.ratioBaselines],
+      ["means", valuation.context.means],
+      ["stddevs", valuation.context.stddevs],
+    ] as const) {
+      for (const [statId, value] of Object.entries(expected as Record<string, number>)) {
+        expect(context[field][statId], `${field} ${statId}`).toBeCloseTo(value, 9);
+      }
+    }
+  });
+
+  for (const testCase of valuation.cases) {
+    it(`matches Python: ${testCase.id}`, () => {
+      const z = valuePlayer(testCase.line as StatLine, context);
+      for (const [statId, expected] of Object.entries(testCase.expected.z as Record<string, number>)) {
+        expect(z[statId], `stat ${statId}`).toBeCloseTo(expected, 9);
+      }
+      expect(Object.keys(z).sort()).toEqual(Object.keys(testCase.expected.z).sort());
+      expect(totalValue(z)).toBeCloseTo(testCase.expected.total, 9);
+      expect(totalValue(z, new Set(valuation.punt))).toBeCloseTo(testCase.expected.totalPunting, 9);
     });
   }
 });

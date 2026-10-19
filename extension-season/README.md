@@ -24,6 +24,7 @@ manifest, deliberately: the draft assistant must not wobble before draft day.
 | Team / roster | A `SHAMS` column: games remaining this week / total, colour-coded |
 | Matchup | Projected per-category totals for both teams, the projected category score, banked vs remaining split, and per-player contributions |
 | Matchup | Best adds: free agents ranked by the categories they would flip — and the ones they would cost you |
+| Trade Hub | Trade insights: any team's strengths, neutral categories, weaknesses and needs, and a league grid ranking every team by category or roster slot ([docs/trade-insights.md](../docs/trade-insights.md)) |
 
 Projection window is switchable (season, last 3, last 7, last 7 days, last 30 days),
 matching the `projection_mode` values the Python engine accepts.

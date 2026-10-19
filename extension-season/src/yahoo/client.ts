@@ -5,7 +5,15 @@
 // consumer key, no server — which is the entire point of this extension.
 
 import { asArray, num, pick, str, unwrap } from "./shapes";
-import type { LeagueSettings, Matchup, RosterPosition, StatCategory, YahooPlayer, YahooTeam } from "./types";
+import type {
+  LeagueRoster,
+  LeagueSettings,
+  Matchup,
+  RosterPosition,
+  StatCategory,
+  YahooPlayer,
+  YahooTeam,
+} from "./types";
 
 const BASE = "https://pub-api-rw.fantasysports.yahoo.com/fantasy/v2";
 
@@ -78,6 +86,11 @@ export async function fetchLeagueSettings(leagueKey: string): Promise<LeagueSett
     currentWeek: num(pick(league, "current_week")) || null,
     startWeek: num(pick(league, "start_week")) || null,
     endWeek: num(pick(league, "end_week")) || null,
+    numTeams: num(pick(league, "num_teams")) || null,
+    startDate: str(pick(league, "start_date")),
+    endDate: str(pick(league, "end_date")),
+    tradeEndDate: str(pick(settings, "trade_end_date")),
+    playoffStartWeek: num(pick(settings, "playoff_start_week")) || null,
   };
 }
 
@@ -172,6 +185,23 @@ export async function fetchUserTeams(gameKey: string): Promise<YahooTeam[]> {
   const data = await get(`/users;use_login=1/teams;game_keys=${gameKey}`);
   const users = unwrap(pick(data, "fantasy_content", "users"), "user");
   return unwrap(pick(users[0], "teams"), "team").map(parseTeam);
+}
+
+/** Every team's current roster in one call — the trade insights compare the whole league. */
+export async function fetchLeagueRosters(leagueKey: string): Promise<LeagueRoster[]> {
+  const data = await get(`/league/${leagueKey}/teams/roster`);
+  const teams = unwrap(pick(data, "fantasy_content", "league", "teams"), "team");
+  return teams.map((team) => {
+    const managers = unwrap(pick(team, "managers"), "manager");
+    const players = unwrap(pick(team, "roster", "players"), "player");
+    return {
+      teamKey: str(team["team_key"]),
+      teamId: str(team["team_id"]),
+      name: str(team["name"]),
+      manager: str(managers[0]?.["nickname"]),
+      players: players.map(parsePlayer),
+    };
+  });
 }
 
 export async function fetchFreeAgents(leagueKey: string, count = 50): Promise<YahooPlayer[]> {

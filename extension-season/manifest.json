@@ -28,6 +28,12 @@
       "js": ["content-matchup.js"],
       "css": ["overlay.css"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://basketball.fantasysports.yahoo.com/nba/*/trade_hub*"],
+      "js": ["content-tradehub.js"],
+      "css": ["overlay.css"],
+      "run_at": "document_idle"
     }
   ]
 }

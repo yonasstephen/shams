@@ -126,7 +126,8 @@ export function sumContributions(lines: Totals[], categories: StatCategory[]): T
   return totals;
 }
 
-function applyPercentages(totals: Totals, categories: StatCategory[]): void {
+/** Rebuild FG% and FT% from pooled makes and attempts, in place. */
+export function applyPercentages(totals: Totals, categories: StatCategory[]): void {
   for (const category of categories) {
     if (category.isDisplayOnly) continue;
     if (category.displayName === "FG%") {
