@@ -43,7 +43,7 @@ PROJECTION_STATS = (
     "threes", "points", "rebounds", "assists", "steals", "blocks", "turnovers",
 )
 
-#: Season-average fields as ``compute_and_save_all_season_stats`` writes them.
+#: Season-average fields as ``boxscore_cache.compute_season_averages`` returns them.
 SEASON_STATS = (
     "games_played", "fgm", "fga", "fg_pct", "ftm", "fta", "ft_pct",
     "threes", "points", "rebounds", "assists", "steals", "blocks", "turnovers",
@@ -154,6 +154,9 @@ def build_players(season: str, tail_days: int, today: date) -> Dict[str, object]
     The tail is raw rather than pre-averaged on purpose: the extension computes the
     ``last3``/``last7``/``last7d``/``last30d`` windows itself, relative to the day it
     runs, so a feed that is a day or two stale still produces correct windows.
+
+    Both are computed from the games up to ``today`` only, so a historical rebuild
+    (``--today`` in the past) sees the season as it stood that day.
     """
     cutoff = (today - timedelta(days=tail_days)).isoformat()
     anchor = today.isoformat()
@@ -161,37 +164,31 @@ def build_players(season: str, tail_days: int, today: date) -> Dict[str, object]
 
     for nba_id in _player_ids_with_games(season):
         cached = boxscore_cache.load_player_games(nba_id, season) or {}
-        games = cached.get("games") or []
+        # Games after the anchor must not leak into a historical rebuild, which is how
+        # fixture and backtest feeds are produced: not into the tail, and not into the
+        # season average, which is why it is computed here rather than loaded.
+        games = [game for game in cached.get("games") or [] if str(game.get("date") or "") <= anchor]
+        if not games:
+            continue
 
         tail: List[List[object]] = []
         for game in games:
-            game_date = str(game.get("date") or "")
-            # Bounded on both ends: games after the anchor must not leak into a
-            # historical rebuild, which is how fixture feeds are produced.
-            if game_date < cutoff or game_date > anchor:
+            if str(game.get("date") or "") < cutoff:
                 continue
             compacted = _compact_game(game)
             if compacted:
                 tail.append(compacted)
         tail.sort(key=lambda row: row[0])
 
-        season_stats = boxscore_cache.load_player_season_stats(nba_id, season)
-        if not season_stats and not tail:
-            continue
+        season_avg = _round_stats(boxscore_cache.compute_season_averages(games), SEASON_STATS)
+        # The cache's season average carries no minutes; the tail is too short for "season".
+        season_avg["mpg"] = round(sum(_parse_minutes(game.get("MIN")) for game in games) / len(games), 2)
 
         entry: Dict[str, object] = {
             "name": cached.get("player_name") or "",
             "games": tail,
+            "season_avg": season_avg,
         }
-        if season_stats:
-            season_avg = _round_stats(season_stats, SEASON_STATS)
-            if games:
-                # The season average carries no minutes, so average them over the same
-                # cached games it was computed from; the tail is too short for "season".
-                season_avg["mpg"] = round(
-                    sum(_parse_minutes(game.get("MIN")) for game in games) / len(games), 2
-                )
-            entry["season_avg"] = season_avg
         eligibility = boxscore_cache.load_player_eligibility(nba_id, season)
         if eligibility:
             entry["eligible_positions"] = eligibility
@@ -363,8 +360,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "--today",
         default=None,
         help=(
-            "Anchor date (YYYY-MM-DD) the game-log tail is measured back from. "
-            "Defaults to today; set it to rebuild a historical feed for test fixtures."
+            "Anchor date (YYYY-MM-DD): the feed sees only games up to it, in the season "
+            "averages and the game-log tail. Defaults to today; set it to rebuild a "
+            "historical feed for test fixtures or backtests."
         ),
     )
     args = parser.parse_args(argv)
