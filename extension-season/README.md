@@ -1,6 +1,6 @@
 # Shams Season Assistant
 
-A Chrome extension that puts the Shams projection engine inline on Yahoo fantasy
+A Chrome and Firefox extension that puts the Shams projection engine inline on Yahoo fantasy
 basketball pages, with **no server running anywhere**.
 
 It exists as a hedge. Every season-long Shams feature currently sits behind Yahoo's OAuth
@@ -34,19 +34,45 @@ matching the `projection_mode` values the Python engine accepts.
 
 ```bash
 npm install
-npm run build        # tsc --noEmit && esbuild -> dist/
+npm run build        # tsc --noEmit && esbuild -> dist/chrome/ and dist/firefox/
 ```
 
-Then `chrome://extensions` → enable Developer mode → **Load unpacked** → pick `dist/`.
+- **Chrome:** `chrome://extensions` → enable Developer mode → **Load unpacked** → pick
+  `dist/chrome/`.
+- **Firefox (140+):** `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on…** →
+  pick `dist/firefox/manifest.json`. A temporary add-on lasts until Firefox restarts;
+  keeping it installed in release Firefox needs the zip signed by Mozilla, listed or
+  unlisted, under the add-on id in `platforms/firefox.json`.
 
 The feed URL defaults to the published branch and can be changed in the popup, which also
 shows how fresh the data is.
 
+## Chrome and Firefox
+
+Both browsers run the same bundles; only the manifest differs. `manifest.json` holds
+everything shared (content scripts, permissions, popup), and `platforms/chrome.json` and
+`platforms/firefox.json` the few keys that differ, merged over it at build time:
+
+| | Chrome | Firefox |
+| --- | --- | --- |
+| Background | `service_worker` | `scripts`, run as an event page |
+| Minimum | Chrome 114 | Firefox 140, Android 142 |
+| Add-on id | assigned by Chrome | `browser_specific_settings.gecko.id`, needed to sign |
+| Data collection | — | declared as none, which Mozilla requires of new add-ons |
+
+No source file branches on the browser. Firefox runs the `chrome.*` calls as written, and
+its content-script requests to Yahoo's API go out with the page's origin, which is what
+Yahoo's CORS allows. Both were checked in Firefox 146 before relying on them. A new
+manifest key belongs in `manifest.json` unless one browser rejects it.
+
 ## Develop
 
 ```bash
-npm run watch   # rebuild on change; reload the extension in Chrome to pick it up
-npm test        # parity + unit tests
+npm run watch          # rebuild both on change; reload the extension to pick it up
+npm run firefox        # run dist/firefox/ in a fresh Firefox profile (sign in to Yahoo there)
+npm run lint:firefox   # Mozilla's add-on linter, as run on submission
+npm run package        # zips for both stores -> dist/packages/
+npm test               # parity + unit tests
 ```
 
 ## The two-engine problem
@@ -73,13 +99,14 @@ cd extension-season && npm test
 
 ```
 src/
-  background.ts      service worker: fetch, decompress and cache the feed
+  background.ts      background script: fetch, decompress and cache the feed
   feed/              feed types, cache, content-script client
   yahoo/             cookie-authenticated Yahoo client + json_f shape readers
   engine/            the ported projection engine (no DOM, no chrome APIs — testable)
   overlay/           every DOM selector lives here, so Yahoo markup changes land in one place
   content/           page entry points
   popup/             feed status and the one setting
+platforms/           per-browser manifest keys, merged over manifest.json
 ```
 
 `docs/season-page-recon.md` records the Yahoo endpoints and DOM anchors this depends on,

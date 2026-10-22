@@ -1,4 +1,4 @@
-// Content-script side: ask the service worker for the feed rather than fetching it here,
+// Content-script side: ask the background script for the feed rather than fetching it here,
 // so one cache serves every tab.
 
 import type { Feed, FeedStatus } from "./types";
@@ -11,7 +11,7 @@ function send<T>(message: unknown): Promise<T> {
         return;
       }
       if (!response?.ok) {
-        reject(new Error(response?.error ?? "no response from the Shams service worker"));
+        reject(new Error(response?.error ?? "no response from the Shams background script"));
         return;
       }
       resolve(response as T);

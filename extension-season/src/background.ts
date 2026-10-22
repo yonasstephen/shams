@@ -1,4 +1,5 @@
-// Thin service worker: owns the feed cache, answers content scripts and the popup.
+// Thin background script (a service worker in Chrome, an event page in Firefox): owns the
+// feed cache, answers content scripts and the popup.
 // No analysis happens here — the content scripts run the engine where the page is.
 
 import { feedStatus, getBaseUrl, loadFeed, setBaseUrl } from "./feed/store";
