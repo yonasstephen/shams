@@ -1,0 +1,139 @@
+{
+  "cases": [
+    {
+      "expected": {
+        "p.1": "C",
+        "p.2": "Util",
+        "p.3": "SG",
+        "p.4": "SF",
+        "p.5": "PG"
+      },
+      "name": "centers-crowd-out-util",
+      "players": [
+        {
+          "eligible_positions": [
+            "C"
+          ],
+          "player_key": "p.1"
+        },
+        {
+          "eligible_positions": [
+            "C"
+          ],
+          "player_key": "p.2"
+        },
+        {
+          "eligible_positions": [
+            "PG",
+            "SG"
+          ],
+          "player_key": "p.3"
+        },
+        {
+          "eligible_positions": [
+            "SF",
+            "PF"
+          ],
+          "player_key": "p.4"
+        },
+        {
+          "eligible_positions": [
+            "PG"
+          ],
+          "player_key": "p.5"
+        }
+      ],
+      "ranks": {
+        "p.1": 10,
+        "p.2": 40,
+        "p.3": 5,
+        "p.4": 22,
+        "p.5": 60
+      },
+      "roster_positions": [
+        "PG",
+        "SG",
+        "G",
+        "SF",
+        "PF",
+        "F",
+        "C",
+        "Util",
+        "BN",
+        "BN"
+      ],
+      "with_games": [
+        "p.1",
+        "p.2",
+        "p.3",
+        "p.4",
+        "p.5"
+      ]
+    },
+    {
+      "expected": {
+        "p.1": "PG",
+        "p.2": "BN"
+      },
+      "name": "no-games-means-bench",
+      "players": [
+        {
+          "eligible_positions": [
+            "PG",
+            "SG"
+          ],
+          "player_key": "p.1"
+        },
+        {
+          "eligible_positions": [
+            "C"
+          ],
+          "player_key": "p.2"
+        }
+      ],
+      "ranks": {},
+      "roster_positions": [
+        "PG",
+        "C",
+        "Util",
+        "BN"
+      ],
+      "with_games": [
+        "p.1"
+      ]
+    },
+    {
+      "expected": {
+        "p.a": "BN",
+        "p.b": "SF"
+      },
+      "name": "rank-breaks-flexibility-tie",
+      "players": [
+        {
+          "eligible_positions": [
+            "SF"
+          ],
+          "player_key": "p.a"
+        },
+        {
+          "eligible_positions": [
+            "SF"
+          ],
+          "player_key": "p.b"
+        }
+      ],
+      "ranks": {
+        "p.a": 300,
+        "p.b": 12
+      },
+      "roster_positions": [
+        "SF",
+        "BN"
+      ],
+      "with_games": [
+        "p.a",
+        "p.b"
+      ]
+    }
+  ]
+}

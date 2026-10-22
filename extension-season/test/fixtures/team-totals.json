@@ -1,0 +1,135 @@
+{
+  "expected": {
+    "10": 21.0,
+    "12": 231.0,
+    "15": 84.0,
+    "16": 51.0,
+    "17": 14.0,
+    "18": 12.0,
+    "19": 27.0,
+    "5": 0.4734042553191489,
+    "8": 0.7441860465116279,
+    "_FGA": 188.0,
+    "_FGM": 89.0,
+    "_FTA": 43.0,
+    "_FTM": 32.0
+  },
+  "playerContributions": {
+    "p.1": {
+      "10": 8.0,
+      "12": 96.0,
+      "15": 24.0,
+      "16": 30.0,
+      "17": 6.0,
+      "18": 2.0,
+      "19": 12.0,
+      "5": 0.0,
+      "8": 0.0
+    },
+    "p.2": {
+      "10": 2.0,
+      "12": 60.0,
+      "15": 45.0,
+      "16": 9.0,
+      "17": 3.0,
+      "18": 9.0,
+      "19": 8.0,
+      "5": 0.0,
+      "8": 0.0
+    },
+    "p.3": {
+      "10": 11.0,
+      "12": 75.0,
+      "15": 15.0,
+      "16": 12.0,
+      "17": 5.0,
+      "18": 1.0,
+      "19": 7.0,
+      "5": 0.0,
+      "8": 0.0
+    }
+  },
+  "playerShooting": {
+    "p.1": {
+      "fga": 78.0,
+      "fgm": 36.0,
+      "fta": 18.0,
+      "ftm": 16.0
+    },
+    "p.2": {
+      "fga": 44.0,
+      "fgm": 26.0,
+      "fta": 14.0,
+      "ftm": 6.0
+    },
+    "p.3": {
+      "fga": 66.0,
+      "fgm": 27.0,
+      "fta": 11.0,
+      "ftm": 10.0
+    }
+  },
+  "statMeta": [
+    {
+      "display_name": "FG%",
+      "name": "Field Goal Percentage",
+      "sort_order": "1",
+      "stat_id": "5"
+    },
+    {
+      "display_name": "FT%",
+      "name": "Free Throw Percentage",
+      "sort_order": "1",
+      "stat_id": "8"
+    },
+    {
+      "display_name": "3PTM",
+      "name": "3-point Shots Made",
+      "sort_order": "1",
+      "stat_id": "10"
+    },
+    {
+      "display_name": "PTS",
+      "name": "Points Scored",
+      "sort_order": "1",
+      "stat_id": "12"
+    },
+    {
+      "display_name": "REB",
+      "name": "Total Rebounds",
+      "sort_order": "1",
+      "stat_id": "15"
+    },
+    {
+      "display_name": "AST",
+      "name": "Assists",
+      "sort_order": "1",
+      "stat_id": "16"
+    },
+    {
+      "display_name": "ST",
+      "name": "Steals",
+      "sort_order": "1",
+      "stat_id": "17"
+    },
+    {
+      "display_name": "BLK",
+      "name": "Blocked Shots",
+      "sort_order": "1",
+      "stat_id": "18"
+    },
+    {
+      "display_name": "TO",
+      "name": "Turnovers",
+      "sort_order": "0",
+      "stat_id": "19"
+    },
+    {
+      "display_name": "FGM/A",
+      "is_only_display_stat": 1,
+      "name": "FGM/A",
+      "sort_order": "1",
+      "stat_id": "9004003"
+    }
+  ]
+}

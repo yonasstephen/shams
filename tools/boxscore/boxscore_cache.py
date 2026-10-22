@@ -809,6 +809,51 @@ def load_player_season_stats(player_id: int, season: str) -> Optional[Dict]:
     return None
 
 
+def compute_season_averages(games: List[Dict]) -> Dict:
+    """Per-game averages over ``games``, every game counting, the way the cache stores them.
+
+    Shooting percentages come from summed makes and attempts. The feed builder calls this
+    with only the games up to its anchor date, so a historical feed sees no later games.
+
+    Args:
+        games: Game log rows as ``save_player_games`` stores them
+
+    Returns:
+        Dictionary of season averages, all zeros when ``games`` is empty
+    """
+    total_fgm = sum(float(g.get("FGM", 0)) for g in games)
+    total_fga = sum(float(g.get("FGA", 0)) for g in games)
+    total_ftm = sum(float(g.get("FTM", 0)) for g in games)
+    total_fta = sum(float(g.get("FTA", 0)) for g in games)
+    total_3pm = sum(float(g.get("FG3M", 0)) for g in games)
+    total_pts = sum(float(g.get("PTS", 0)) for g in games)
+    total_reb = sum(float(g.get("REB", 0)) for g in games)
+    total_ast = sum(float(g.get("AST", 0)) for g in games)
+    total_stl = sum(float(g.get("STL", 0)) for g in games)
+    total_blk = sum(float(g.get("BLK", 0)) for g in games)
+    total_to = sum(float(g.get("TO", 0)) for g in games)
+
+    num_games = len(games)
+
+    return {
+        "games_played": num_games,
+        # Per-game averages
+        "fgm": total_fgm / num_games if num_games > 0 else 0,
+        "fga": total_fga / num_games if num_games > 0 else 0,
+        "fg_pct": total_fgm / total_fga if total_fga > 0 else 0,
+        "ftm": total_ftm / num_games if num_games > 0 else 0,
+        "fta": total_fta / num_games if num_games > 0 else 0,
+        "ft_pct": total_ftm / total_fta if total_fta > 0 else 0,
+        "threes": total_3pm / num_games if num_games > 0 else 0,
+        "points": total_pts / num_games if num_games > 0 else 0,
+        "rebounds": total_reb / num_games if num_games > 0 else 0,
+        "assists": total_ast / num_games if num_games > 0 else 0,
+        "steals": total_stl / num_games if num_games > 0 else 0,
+        "blocks": total_blk / num_games if num_games > 0 else 0,
+        "turnovers": total_to / num_games if num_games > 0 else 0,
+    }
+
+
 def compute_and_save_all_season_stats(season: str) -> int:
     """Compute season averages for all players from cached games and save them.
 
@@ -834,39 +879,7 @@ def compute_and_save_all_season_stats(season: str) -> int:
             if not games:
                 continue
 
-            # Compute season averages
-            total_fgm = sum(float(g.get("FGM", 0)) for g in games)
-            total_fga = sum(float(g.get("FGA", 0)) for g in games)
-            total_ftm = sum(float(g.get("FTM", 0)) for g in games)
-            total_fta = sum(float(g.get("FTA", 0)) for g in games)
-            total_3pm = sum(float(g.get("FG3M", 0)) for g in games)
-            total_pts = sum(float(g.get("PTS", 0)) for g in games)
-            total_reb = sum(float(g.get("REB", 0)) for g in games)
-            total_ast = sum(float(g.get("AST", 0)) for g in games)
-            total_stl = sum(float(g.get("STL", 0)) for g in games)
-            total_blk = sum(float(g.get("BLK", 0)) for g in games)
-            total_to = sum(float(g.get("TO", 0)) for g in games)
-
-            num_games = len(games)
-
-            season_stats = {
-                "games_played": num_games,
-                # Per-game averages
-                "fgm": total_fgm / num_games if num_games > 0 else 0,
-                "fga": total_fga / num_games if num_games > 0 else 0,
-                "fg_pct": total_fgm / total_fga if total_fga > 0 else 0,
-                "ftm": total_ftm / num_games if num_games > 0 else 0,
-                "fta": total_fta / num_games if num_games > 0 else 0,
-                "ft_pct": total_ftm / total_fta if total_fta > 0 else 0,
-                "threes": total_3pm / num_games if num_games > 0 else 0,
-                "points": total_pts / num_games if num_games > 0 else 0,
-                "rebounds": total_reb / num_games if num_games > 0 else 0,
-                "assists": total_ast / num_games if num_games > 0 else 0,
-                "steals": total_stl / num_games if num_games > 0 else 0,
-                "blocks": total_blk / num_games if num_games > 0 else 0,
-                "turnovers": total_to / num_games if num_games > 0 else 0,
-            }
-
+            season_stats = compute_season_averages(games)
             save_player_season_stats(player_id, player_name, season, season_stats)
             count += 1
 

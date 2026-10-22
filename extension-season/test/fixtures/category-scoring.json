@@ -1,0 +1,255 @@
+{
+  "cases": [
+    {
+      "expected": {
+        "a": {
+          "loss": 5.0,
+          "tie": 0.0,
+          "total": 4.0,
+          "win": 4.0
+        },
+        "b": {
+          "loss": 4.0,
+          "tie": 0.0,
+          "total": 5.0,
+          "win": 5.0
+        }
+      },
+      "name": "clear-win",
+      "teamA": {
+        "10": 55,
+        "12": 820,
+        "15": 310,
+        "16": 180,
+        "17": 40,
+        "18": 25,
+        "19": 95,
+        "5": 0.45714285714285713,
+        "8": 0.8,
+        "_FGA": 700,
+        "_FGM": 320,
+        "_FTA": 150,
+        "_FTM": 120
+      },
+      "teamB": {
+        "10": 48,
+        "12": 780,
+        "15": 330,
+        "16": 165,
+        "17": 45,
+        "18": 30,
+        "19": 88,
+        "5": 0.42028985507246375,
+        "8": 0.8235294117647058,
+        "_FGA": 690,
+        "_FGM": 290,
+        "_FTA": 170,
+        "_FTM": 140
+      }
+    },
+    {
+      "expected": {
+        "a": {
+          "loss": 0.0,
+          "tie": 7.0,
+          "total": 2.0,
+          "win": 2.0
+        },
+        "b": {
+          "loss": 2.0,
+          "tie": 7.0,
+          "total": 0.0,
+          "win": 0.0
+        }
+      },
+      "name": "percentage-tie-volume-breaks-it",
+      "teamA": {
+        "10": 50,
+        "12": 800,
+        "15": 300,
+        "16": 170,
+        "17": 42,
+        "18": 28,
+        "19": 90,
+        "5": 0.5,
+        "8": 0.8,
+        "_FGA": 600,
+        "_FGM": 300,
+        "_FTA": 125,
+        "_FTM": 100
+      },
+      "teamB": {
+        "10": 50,
+        "12": 800,
+        "15": 300,
+        "16": 170,
+        "17": 42,
+        "18": 28,
+        "19": 90,
+        "5": 0.5,
+        "8": 0.8,
+        "_FGA": 300,
+        "_FGM": 150,
+        "_FTA": 100,
+        "_FTM": 80
+      }
+    },
+    {
+      "expected": {
+        "a": {
+          "loss": 0.0,
+          "tie": 9.0,
+          "total": 0.0,
+          "win": 0.0
+        },
+        "b": {
+          "loss": 0.0,
+          "tie": 9.0,
+          "total": 0.0,
+          "win": 0.0
+        }
+      },
+      "name": "exact-tie",
+      "teamA": {
+        "10": 50,
+        "12": 800,
+        "15": 300,
+        "16": 170,
+        "17": 42,
+        "18": 28,
+        "19": 90,
+        "5": 0.5,
+        "8": 0.8,
+        "_FGA": 600,
+        "_FGM": 300,
+        "_FTA": 125,
+        "_FTM": 100
+      },
+      "teamB": {
+        "10": 50,
+        "12": 800,
+        "15": 300,
+        "16": 170,
+        "17": 42,
+        "18": 28,
+        "19": 90,
+        "5": 0.5,
+        "8": 0.8,
+        "_FGA": 600,
+        "_FGM": 300,
+        "_FTA": 125,
+        "_FTM": 100
+      }
+    },
+    {
+      "expected": {
+        "a": {
+          "loss": 0.0,
+          "tie": 8.0,
+          "total": 1.0,
+          "win": 1.0
+        },
+        "b": {
+          "loss": 1.0,
+          "tie": 8.0,
+          "total": 0.0,
+          "win": 0.0
+        }
+      },
+      "name": "turnovers-lower-is-better",
+      "teamA": {
+        "10": 52,
+        "12": 790,
+        "15": 305,
+        "16": 175,
+        "17": 41,
+        "18": 26,
+        "19": 70,
+        "5": 0.46875,
+        "8": 0.7857142857142857,
+        "_FGA": 640,
+        "_FGM": 300,
+        "_FTA": 140,
+        "_FTM": 110
+      },
+      "teamB": {
+        "10": 52,
+        "12": 790,
+        "15": 305,
+        "16": 175,
+        "17": 41,
+        "18": 26,
+        "19": 120,
+        "5": 0.46875,
+        "8": 0.7857142857142857,
+        "_FGA": 640,
+        "_FGM": 300,
+        "_FTA": 140,
+        "_FTM": 110
+      }
+    }
+  ],
+  "statMeta": [
+    {
+      "display_name": "FG%",
+      "name": "Field Goal Percentage",
+      "sort_order": "1",
+      "stat_id": "5"
+    },
+    {
+      "display_name": "FT%",
+      "name": "Free Throw Percentage",
+      "sort_order": "1",
+      "stat_id": "8"
+    },
+    {
+      "display_name": "3PTM",
+      "name": "3-point Shots Made",
+      "sort_order": "1",
+      "stat_id": "10"
+    },
+    {
+      "display_name": "PTS",
+      "name": "Points Scored",
+      "sort_order": "1",
+      "stat_id": "12"
+    },
+    {
+      "display_name": "REB",
+      "name": "Total Rebounds",
+      "sort_order": "1",
+      "stat_id": "15"
+    },
+    {
+      "display_name": "AST",
+      "name": "Assists",
+      "sort_order": "1",
+      "stat_id": "16"
+    },
+    {
+      "display_name": "ST",
+      "name": "Steals",
+      "sort_order": "1",
+      "stat_id": "17"
+    },
+    {
+      "display_name": "BLK",
+      "name": "Blocked Shots",
+      "sort_order": "1",
+      "stat_id": "18"
+    },
+    {
+      "display_name": "TO",
+      "name": "Turnovers",
+      "sort_order": "0",
+      "stat_id": "19"
+    },
+    {
+      "display_name": "FGM/A",
+      "is_only_display_stat": 1,
+      "name": "FGM/A",
+      "sort_order": "1",
+      "stat_id": "9004003"
+    }
+  ]
+}
