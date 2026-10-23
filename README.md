@@ -7,6 +7,11 @@ Fantasy basketball analysis platform with two interfaces sharing the same core l
 
 > **Getting started?** See [QUICKSTART.md](QUICKSTART.md) for CLI, web app, and production setup.
 
+> **v2: no Yahoo API key.** The CLI and web app need a Yahoo OAuth key. Without one, the
+> season extension (`extension-season/`) and its nightly NBA feed do the job.
+> [docs/shams-v2.md](docs/shams-v2.md) explains the split. It also explains how v1 (tagged
+> `v1.0.0`, code unchanged) comes back once a key is available.
+
 ## Features
 
 - **Player Search** — Stats across multiple periods: last game, last 3/7 games, season average
@@ -70,7 +75,7 @@ Projections for every matchup in the league. **Requires running `/refresh` at le
 
 ### `/refresh [-s START_DATE] [-e END_DATE]`
 
-Refresh all cached data: box scores, season stats, NBA schedules, and waiver player lists. Defaults to season start (Oct 21) through today.
+Refresh all cached data: box scores, season stats, NBA schedules, and waiver player lists. Defaults to season start (Oct 1) through today.
 
 ### Example session
 
