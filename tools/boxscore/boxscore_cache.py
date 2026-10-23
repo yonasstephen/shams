@@ -8,6 +8,8 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from tools.utils.season import get_season_first_day
+
 _player_index_lock = threading.Lock()
 
 
@@ -993,10 +995,9 @@ def detect_missing_games(
 
     # Determine date range
     if start_date is None:
-        # Use season start
+        # From October 1, so an opener earlier than usual still counts as expected
         try:
-            year = int(season.split("-")[0])
-            start_date = date(year, 10, 21)  # NBA season typically starts Oct 21
+            start_date = get_season_first_day(season)
         except (ValueError, IndexError):
             start_date = date.today() - timedelta(days=30)
 

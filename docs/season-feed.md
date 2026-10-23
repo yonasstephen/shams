@@ -30,19 +30,23 @@ Sizes: ~110 KB gzipped in the preseason, ~220 KB in season.
 pipenv run python -c "from tools.schedule import schedule_refresh; schedule_refresh.cache_all_team_schedules('2026-27')"
 
 pipenv run python scripts/build_feed.py 2026-27 --out /tmp/feed   # inspect locally
-./scripts/publish_feed.sh 2026-27 --dry-run                       # see what would change
-./scripts/publish_feed.sh 2026-27                                 # commit + push the feed branch
+./scripts/publish_feed.sh 2026-27 --dry-run                       # build and compare, no push
+./scripts/publish_feed.sh 2026-27                                 # replace the feed branch
 ```
 
-Nightly, on whichever machine holds `~/.shams` (the refresh needs `stats.nba.com`, which
-blocks cloud IPs — do not move this into GitHub Actions):
+Each publish replaces the branch with a single commit, so it never grows. A past feed is
+rebuilt from the cache with `--today` (below), not dug out of history. The publisher also
+refuses a build that comes out empty where the live feed for the same season had data,
+such as a machine without the projections CSV; `--allow-shrink` overrides that.
 
-```cron
-30 5 * * *  cd /path/to/shams && pipenv run ./shams --refresh && ./scripts/publish_feed.sh 2026-27
-```
+Nightly, the NAS runs `scripts/nightly_feed.py`, which refreshes box scores and then
+publishes. Its Docker image and setup are in [shams-v2.md](shams-v2.md). It has to run on
+a machine at home: the refresh needs `stats.nba.com`, which blocks cloud IPs, so do not
+move it into GitHub Actions.
 
-`build_feed.py` writes byte-stable gzip (mtime zeroed), so an unchanged feed produces no
-commit and no re-download for the extension.
+`build_feed.py` writes byte-stable gzip (mtime zeroed), and the publisher compares file
+hashes against the live feed, so an unchanged feed produces no commit and no re-download
+for the extension.
 
 ## Rebuilding a historical feed
 
