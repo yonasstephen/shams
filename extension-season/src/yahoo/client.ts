@@ -91,20 +91,45 @@ export async function fetchLeagueSettings(leagueKey: string): Promise<LeagueSett
     endDate: str(pick(league, "end_date")),
     tradeEndDate: str(pick(settings, "trade_end_date")),
     playoffStartWeek: num(pick(settings, "playoff_start_week")) || null,
+    currentDate: str(pick(league, "current_date")),
   };
 }
 
-function parseTeamStats(team: Record<string, unknown>): Record<string, number> | undefined {
-  const stats = unwrap(pick(team, "team_stats", "stats"), "stat");
-  if (!stats.length) return undefined;
+/** Yahoo's combined made/attempted stats, which arrive as "108/243". */
+const SHOOTING_PAIRS: Record<string, [string, string]> = {
+  "9004003": ["_FGM", "_FGA"],
+  "9007006": ["_FTM", "_FTA"],
+};
 
+/** Read a `stats` list into numbers by stat id, splitting FGM/A and FTM/A into makes and
+ *  attempts so percentages can be pooled. Returns undefined when every value is a dash,
+ *  which is how Yahoo shows a day without a game, or a game not yet started. */
+export function parseStats(entries: Record<string, unknown>[]): Record<string, number> | undefined {
   const values: Record<string, number> = {};
-  for (const stat of stats) {
+  let anyNumber = false;
+
+  for (const stat of entries) {
     const statId = str(stat["stat_id"]);
     if (!statId) continue;
-    values[statId] = num(stat["value"]);
+    const raw = str(stat["value"]).trim();
+    if (raw === "" || raw === "-" || raw === "-/-") continue;
+    anyNumber = true;
+
+    const pair = SHOOTING_PAIRS[statId];
+    const split = /^(\d+)\/(\d+)$/.exec(raw);
+    if (pair && split) {
+      values[pair[0]] = Number(split[1]);
+      values[pair[1]] = Number(split[2]);
+    } else {
+      values[statId] = num(raw);
+    }
   }
-  return values;
+
+  return anyNumber ? values : undefined;
+}
+
+function parseTeamStats(team: Record<string, unknown>): Record<string, number> | undefined {
+  return parseStats(unwrap(pick(team, "team_stats", "stats"), "stat"));
 }
 
 function parseTeam(team: Record<string, unknown>): YahooTeam {
@@ -141,15 +166,7 @@ function parsePlayer(player: Record<string, unknown>): YahooPlayer {
     .map((entry) => (typeof entry === "string" ? entry : str(pick(entry, "position"))))
     .filter(Boolean);
 
-  const statEntries = unwrap(pick(player, "player_stats", "stats"), "stat");
-  let stats: Record<string, number> | undefined;
-  if (statEntries.length) {
-    stats = {};
-    for (const stat of statEntries) {
-      const statId = str(stat["stat_id"]);
-      if (statId) stats[statId] = num(stat["value"]);
-    }
-  }
+  const stats = parseStats(unwrap(pick(player, "player_stats", "stats"), "stat"));
 
   return {
     playerKey: str(player["player_key"]),
@@ -163,9 +180,11 @@ function parsePlayer(player: Record<string, unknown>): YahooPlayer {
   };
 }
 
-/** A team's roster as it stands on `date` (Yahoo returns today's roster for future dates). */
+/** A team's roster as it stands on `date`, with each player's line for that day (Yahoo
+ *  returns today's roster for future dates). The line includes games in progress, which
+ *  the feed never has. */
 export async function fetchRoster(teamKey: string, date: string): Promise<YahooPlayer[]> {
-  const data = await get(`/team/${teamKey}/roster;date=${date}`);
+  const data = await get(`/team/${teamKey}/roster;date=${date}/players/stats;type=date;date=${date}`);
   const players = unwrap(pick(data, "fantasy_content", "team", "roster", "players"), "player");
   return players.map(parsePlayer);
 }

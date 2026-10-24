@@ -26,6 +26,9 @@ export interface LeagueSettings {
   endDate: string;
   /** Last day trades can be made, YYYY-MM-DD. */
   tradeEndDate: string;
+  /** Yahoo's fantasy day, YYYY-MM-DD: the date whose games are being played now. Empty
+   *  when Yahoo omits it. */
+  currentDate: string;
   playoffStartWeek: number | null;
 }
 
@@ -38,7 +41,9 @@ export interface YahooPlayer {
   selectedPosition: string;
   eligiblePositions: string[];
   status: string;
-  /** Per-stat-id values, present only when the request asked for stats. */
+  /** Per-stat-id values, plus `_FGM`/`_FGA`/`_FTM`/`_FTA` from Yahoo's FGM/A and FTM/A.
+   *  Present only when the request asked for stats and Yahoo had a number for at least
+   *  one of them: a day of dashes means no game, or one that has not tipped off. */
   stats?: Record<string, number>;
 }
 
@@ -46,7 +51,8 @@ export interface YahooTeam {
   teamKey: string;
   teamId: string;
   name: string;
-  /** Week totals Yahoo itself shows, per stat id. */
+  /** Week totals Yahoo itself shows, per stat id, with the same shooting keys as a
+   *  player's stats. */
   stats?: Record<string, number>;
 }
 

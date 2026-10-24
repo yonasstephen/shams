@@ -1,6 +1,6 @@
 // Matchup page: the projection panel, per-player contributions and best adds.
 
-import { loadMatchup, loadPageContext, loadRosterByDate, resolveTeamKey, todayIso, type PageContext } from "./context";
+import { loadMatchup, loadPageContext, loadRosterByDate, resolveTeamKey, type PageContext } from "./context";
 import { findTotalsTable, renderMatchupPanel, type PanelState } from "../overlay/matchupPanel";
 import { whenPresent } from "../overlay/dom";
 import { projectMatchup, type ProjectionResult } from "../engine/project";
@@ -45,7 +45,7 @@ async function build(context: PageContext): Promise<{ projection: ProjectionResu
   const matchup = await loadMatchup(teamKey, weekFromUrl());
   if (matchup.teams.length < 2) throw new Error("matchup has fewer than two teams");
 
-  const today = todayIso();
+  const today = context.today;
   const [teamA, teamB] = matchup.teams as [(typeof matchup.teams)[0], (typeof matchup.teams)[0]];
   const [rosterA, rosterB] = await Promise.all([
     loadRosterByDate(teamA.teamKey, matchup.weekStart, matchup.weekEnd, today),
@@ -65,8 +65,8 @@ async function build(context: PageContext): Promise<{ projection: ProjectionResu
     today,
     mode: state.mode,
     teams: [
-      { teamKey: teamA.teamKey, name: teamA.name, rosterByDate: rosterA, optimize: false },
-      { teamKey: teamB.teamKey, name: teamB.name, rosterByDate: rosterB, optimize: false },
+      { teamKey: teamA.teamKey, name: teamA.name, rosterByDate: rosterA, weekTotals: teamA.stats, optimize: false },
+      { teamKey: teamB.teamKey, name: teamB.name, rosterByDate: rosterB, weekTotals: teamB.stats, optimize: false },
     ],
   });
 
@@ -99,7 +99,7 @@ async function refresh(force: boolean): Promise<void> {
         freeAgents,
         weekStart: projection.weekStart,
         weekEnd: projection.weekEnd,
-        today: todayIso(),
+        today: context.today,
         mode: state.mode,
       });
       render();

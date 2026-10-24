@@ -4,6 +4,10 @@
 // double-counts a game:
 //   * banked stats and projected stats stay in separate buckets to the very end;
 //   * today counts as banked if a box score exists for it, otherwise as remaining.
+//
+// Banked stats come from Yahoo first: its line for each day includes games in progress,
+// while the feed's box scores stop at its nightly build. The feed is the fallback for a
+// day Yahoo sent no line for.
 
 import type { Feed, StatLine } from "../feed/types";
 import type { StatCategory, YahooPlayer } from "../yahoo/types";
@@ -50,8 +54,12 @@ export interface TeamPoints {
 export interface TeamInput {
   teamKey: string;
   name: string;
-  /** Roster as it stood on each date of the week so far, plus today for the rest. */
+  /** Roster as it stood on each date of the week so far, plus today for the rest. A
+   *  player's `stats` on a date is Yahoo's line for that day. */
   rosterByDate: Record<string, YahooPlayer[]>;
+  /** Yahoo's own totals for the week so far. When present they are the team's banked
+   *  line, so the projection starts from the numbers on the scoreboard above it. */
+  weekTotals?: Totals;
   optimize: boolean;
   playerRanks?: Record<string, number>;
 }
@@ -264,25 +272,43 @@ function projectTeam(input: ProjectionInput, team: TeamInput): TeamProjection {
     }
   }
 
+  // Yahoo's line for each player on each day, whatever slot they were in.
+  const yahooLines = new Map<string, Map<string, Totals>>();
+  for (const date of new Set([...pastDates, today])) {
+    const lines = new Map<string, Totals>();
+    for (const player of team.rosterByDate[date] ?? []) {
+      if (player.stats) lines.set(player.playerKey, player.stats);
+    }
+    yahooLines.set(date, lines);
+  }
+
   for (const player of rosterUnion) {
     const nbaId = resolveNbaId(feed.index, player.playerId, player.name);
     const entry = nbaId ? feed.players.players[nbaId] : undefined;
 
-    // Banked: box scores on days this player actually started.
-    const bankedRows = pastDates
-      .filter((date) => activeOnDate.get(date)?.has(player.playerKey))
-      .flatMap((date) => gamesInRange(entry, date, date));
-    const playedDates = new Set(bankedRows.map((row) => row[0]));
-    const bankedLine = sumRows(bankedRows);
+    // Banked: on each day this player started, Yahoo's line, or the feed's box score
+    // when Yahoo sent none.
+    const bankedDays: Totals[] = [];
+    const playedDates = new Set<string>();
+    for (const date of pastDates) {
+      if (!activeOnDate.get(date)?.has(player.playerKey)) continue;
+      const yahooLine = yahooLines.get(date)?.get(player.playerKey);
+      const lines = yahooLine
+        ? [yahooLine]
+        : gamesInRange(entry, date, date).map((row) => lineToStats(sumRows([row]), categories, 1));
+      if (lines.length) playedDates.add(date);
+      bankedDays.push(...lines);
+    }
     const current = excluded.has(player.playerKey)
       ? emptyTotals(categories)
-      : lineToStats(bankedLine, categories, 1);
-    if (!excluded.has(player.playerKey)) applyPercentages(current, categories);
+      : sumContributions(bankedDays, categories);
 
-    // Remaining: scheduled games left, times this player's window averages.
+    // Remaining: scheduled games left, times this player's window averages. A game
+    // Yahoo already has a line for today has tipped off, even if he sat on the bench.
     const allPlayed = new Set(
       (entry?.games ?? []).filter((row) => row[0] >= weekStart && row[0] <= today).map((row) => row[0]),
     );
+    if (yahooLines.get(today)?.has(player.playerKey)) allPlayed.add(today);
     const games = weekGames(feed.schedule, player.teamAbbr, weekStart, weekEnd, today, allPlayed);
     const isFutureActive = futureActive.has(player.playerKey) && !excluded.has(player.playerKey);
     const averages = playerAverages({
@@ -318,7 +344,9 @@ function projectTeam(input: ProjectionInput, team: TeamInput): TeamProjection {
     remainingLines.push(projected);
   }
 
-  const current = sumContributions(currentLines, categories);
+  const current = team.weekTotals
+    ? { ...emptyTotals(categories), ...team.weekTotals }
+    : sumContributions(currentLines, categories);
   const remaining = sumContributions(remainingLines, categories);
 
   return {

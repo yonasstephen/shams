@@ -14,10 +14,17 @@ import {
 import type { LeagueSettings, Matchup, YahooPlayer } from "../yahoo/types";
 import { datesInRange } from "../engine/schedule";
 
-export function todayIso(): string {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 10);
+/** Today's date in US Eastern time, the zone of NBA game dates, the feed's schedule and
+ *  Yahoo's fantasy day. The browser's own date runs a day ahead in Asia, which would
+ *  count tonight's games as already played. Prefer Yahoo's `current_date` when there is
+ *  a league to ask (`PageContext.today`). */
+export function todayIso(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
 }
 
 export interface PageContext {
@@ -26,6 +33,7 @@ export interface PageContext {
   leagueKey: string;
   settings: LeagueSettings;
   userTeamKey: string | null;
+  /** Yahoo's fantasy day for this league, or the US Eastern date if Yahoo omits it. */
   today: string;
 }
 
@@ -42,7 +50,7 @@ export async function loadPageContext(force = false): Promise<PageContext> {
 
   const userTeamKey = userTeams.find((team) => team.teamKey.startsWith(`${leagueKey}.`))?.teamKey ?? null;
 
-  return { feed, gameKey, leagueKey, settings, userTeamKey, today: todayIso() };
+  return { feed, gameKey, leagueKey, settings, userTeamKey, today: settings.currentDate || todayIso() };
 }
 
 export function teamKeyFor(leagueKey: string, teamId: string): string {
@@ -77,11 +85,12 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-/** Rosters for each day of the week that has already happened, plus today.
+/** Rosters for each day of the week that has already happened, plus today, each with
+ * every player's line for that day.
  *
  * Past days matter because a player benched on Tuesday must not be credited with
- * Tuesday's box score; future days all use today's roster, which is what Yahoo returns
- * for a future date anyway. */
+ * Tuesday's line; future days all use today's roster, which is what Yahoo returns for a
+ * future date anyway. */
 export async function loadRosterByDate(
   teamKey: string,
   weekStart: string,
