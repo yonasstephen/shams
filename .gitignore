@@ -2,6 +2,9 @@
 certs/
 *.pem
 
+# Deploy key for the feed job (docker-compose.feed.yml)
+/secrets/
+
 # Python
 __pycache__/
 *.py[cod]

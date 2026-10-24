@@ -43,10 +43,11 @@ _console = Console()
 _SEASON_END_MONTH = 4
 _SEASON_END_DAY = 30
 
-# ``boxscore_refresh.get_season_start_date`` hardcodes October 21, but real
-# openers move: 2021-22 tipped off October 19 and 2020-21 not until December 22.
-# Starting from October 1 cannot miss an opener, and costs nothing — the fetcher
-# walks the schedule's own date→games map, so days without games are skipped.
+# Real openers move: 2021-22 tipped off October 19 and 2020-21 not until
+# December 22. Starting from October 1 cannot miss an opener, and costs nothing —
+# the fetcher walks the schedule's own date→games map, so days without games are
+# skipped. ``tools.utils.season.get_season_first_day`` gives the daily refresh the
+# same start.
 _SEASON_START_MONTH = 10
 _SEASON_START_DAY = 1
 

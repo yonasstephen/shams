@@ -1,0 +1,16 @@
+# Build context for the images built from the repo root (backend, feed job). They copy
+# only backend/, tools/ and scripts/, so keep secrets and bulk out of the context.
+.git
+.env
+.env.*
+certs
+secrets
+*.pem
+**/node_modules
+**/__pycache__
+coverage-html
+frontend
+extension
+extension-season
+docs
+feed

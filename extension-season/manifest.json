@@ -3,13 +3,10 @@
   "name": "Shams Season Assistant",
   "version": "0.1.0",
   "description": "Matchup projections, games remaining and waiver adds from the Shams engine, inline on Yahoo fantasy basketball.",
-  "minimum_chrome_version": "114",
 
   "permissions": ["storage"],
 
   "host_permissions": ["https://raw.githubusercontent.com/*"],
-
-  "background": { "service_worker": "background.js" },
 
   "action": {
     "default_title": "Shams Season Assistant",

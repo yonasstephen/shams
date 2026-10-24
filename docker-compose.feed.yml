@@ -1,0 +1,34 @@
+# Shams v2's only server: a container that refreshes NBA box scores every night and
+# publishes the static feed the season extension reads. It needs no Yahoo credentials,
+# so it runs whether or not the v1 web app (docker-compose.prod.yml) does.
+#
+# The NAS runs its own hand-maintained compose file: copy the `feed` service into it.
+# docs/shams-v2.md walks through the deploy key.
+#
+#   docker compose -f docker-compose.feed.yml up -d
+#   docker compose -f docker-compose.feed.yml run --rm feed python scripts/nightly_feed.py   # once, now
+#   docker compose -f docker-compose.feed.yml logs -f feed
+services:
+  feed:
+    image: ghcr.io/yonasstephen/shams-feed:latest
+    build:
+      context: .
+      dockerfile: feed-job/Dockerfile
+    command: python scripts/nightly_feed.py --at 05:00
+    environment:
+      # SSH, so the push uses the deploy key below rather than a personal token.
+      - SHAMS_FEED_REMOTE=git@github.com:yonasstephen/shams.git
+      - SHAMS_FEED_SSH_KEY=/run/secrets/feed_deploy_key
+    volumes:
+      # The same cache directory the backend mounts, so v1 and v2 share box scores.
+      - ~/.shams:/root/.shams # CHANGE: map to the local volume dir
+      # A GitHub deploy key with write access to this repo only.
+      - ./secrets/feed_deploy_key:/run/secrets/feed_deploy_key:ro
+    restart: unless-stopped
+    mem_limit: 1g
+    mem_reservation: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

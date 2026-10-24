@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from nba_api.stats.library.parameters import SeasonAll
 from rich.console import Console
 
 from tools.boxscore import boxscore_cache, boxscore_fetcher
 from tools.schedule import schedule_cache, schedule_refresh
+from tools.utils.season import get_season_first_day
 from tools.utils.timing import TimingTracker
 
 # Create a global console for colored output
@@ -91,20 +92,20 @@ def _detect_active_season(_current_season: str) -> str:
 
 
 def get_season_start_date(season: str) -> date:
-    """Get the start date of the NBA season.
+    """Get the day a full-season fetch starts from.
+
+    This is October 1, not a guessed opening night: a refresh that starts after the
+    real opener never goes back for it (``smart_refresh`` only walks forward from the
+    last cached day). See ``tools.utils.season.get_season_first_day``.
 
     Args:
         season: Season string (e.g., "2025-26").
 
     Returns:
-        Season start date (typically October 21 of the first year)
+        October 1 of the season's first year
     """
-    # Parse season (format: "2025-26")
     try:
-        year = int(season.split("-")[0])
-        # NBA season typically starts on October 21 of the first year
-        # For "2025-26", that's October 21, 2025
-        return date(year, 10, 21)
+        return get_season_first_day(season)
     except (ValueError, IndexError):
         # Fallback to today minus 7 days
         return date.today() - timedelta(days=7)
@@ -561,5 +562,49 @@ def smart_refresh(season: str) -> Dict:
         "players_updated": players_updated,
         "start_date": start_date.isoformat(),
         "end_date": today.isoformat(),
+        "season": season,
+    }
+
+
+def fill_missing_games(season: str) -> Dict:
+    """Fetch every finished game the cache lacks, wherever in the season it falls.
+
+    ``smart_refresh`` only walks forward from the last cached day, so a game that
+    failed to fetch, or one played before the first cached day, stays missing for
+    good. This compares the schedule against the cache instead
+    (``boxscore_cache.detect_missing_games``) and re-fetches just those days, which
+    is what an unattended nightly job needs to heal itself.
+
+    Args:
+        season: Season string (e.g., "2026-27").
+
+    Returns:
+        Summary with the days retried, games fetched and games still failing
+    """
+    missing = boxscore_cache.detect_missing_games(season)
+    if not missing:
+        return {"dates": [], "games_fetched": 0, "games_failed": 0, "season": season}
+
+    date_game_ids, game_times = schedule_refresh.cache_all_team_schedules(season)
+    game_matchups = _build_game_matchups(season)
+
+    games_fetched = 0
+    failed_games: List[Dict] = []
+    for date_str in sorted(missing):
+        day = date.fromisoformat(date_str)
+        fetched, failed = boxscore_fetcher.fetch_and_cache_date_range(
+            day, day, date_game_ids, season, game_times, game_matchups
+        )
+        games_fetched += fetched
+        failed_games.extend(failed)
+
+    if games_fetched > 0:
+        boxscore_cache.compute_and_save_all_season_stats(season)
+        schedule_cache.build_player_team_index_from_boxscores(season)
+
+    return {
+        "dates": sorted(missing),
+        "games_fetched": games_fetched,
+        "games_failed": len(failed_games),
         "season": season,
     }
