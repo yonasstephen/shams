@@ -14,7 +14,7 @@ import type { StatCategory, YahooPlayer } from "../yahoo/types";
 import { fieldForStatName, isPercentageStat } from "./statMap";
 import { gamesInRange, playerAverages, sumRows, type ProjectionMode, type StatSource } from "./statWindows";
 import { isActivePosition, optimizeRosterPositions } from "./rosterOptimizer";
-import { gameDatesFor, weekGames } from "./schedule";
+import { datesInRange, gameDatesFor, weekGames } from "./schedule";
 import { resolveNbaId } from "./playerIdentity";
 
 export interface Totals extends Record<string, number> {}
@@ -26,8 +26,19 @@ export interface PlayerContribution {
   nbaId: string | null;
   teamAbbr: string;
   selectedPosition: string;
+  status: string;
+  /** Games on his NBA team's schedule this week. */
   totalGames: number;
+  /** Games still to come while he is on this roster, whatever slot he is in. */
   remainingGames: number;
+  /** The remaining games the projection counts: those on days he is in an active slot. */
+  projectedGames: number;
+  /** Dates of remaining games he sits on the bench for, which the projection leaves out. */
+  benchedDates: string[];
+  /** First day on this roster, when he joined after the week began. */
+  addedOn?: string;
+  /** First day off this roster, when he leaves before the week ends. */
+  droppedOn?: string;
   playedGames: number;
   current: Totals;
   projected: Totals;
@@ -54,8 +65,10 @@ export interface TeamPoints {
 export interface TeamInput {
   teamKey: string;
   name: string;
-  /** Roster as it stood on each date of the week so far, plus today for the rest. A
-   *  player's `stats` on a date is Yahoo's line for that day. */
+  /** Roster on each date of the week as Yahoo has it: the lineup that played on past
+   *  days, and the lineup set for each day still to come. A player's `stats` on a date is
+   *  Yahoo's line for that day. A day still to come that is missing or empty falls back
+   *  to today's lineup. */
   rosterByDate: Record<string, YahooPlayer[]>;
   /** Yahoo's own totals for the week so far. When present they are the team's banked
    *  line, so the projection starts from the numbers on the scoreboard above it. */
@@ -86,6 +99,14 @@ export interface ProjectionResult {
 }
 
 const SHOOTING_KEYS = ["_FGM", "_FGA", "_FTM", "_FTA"] as const;
+
+// Yahoo injury statuses that mean he will not play, matching the web app's waiver page.
+const OUT_STATUSES = new Set(["INJ", "O", "OUT", "IR", "SUSP", "PUP", "NA"]);
+
+/** Benching a player who is out anyway is not an oversight worth flagging. */
+export function isOutStatus(status: string): boolean {
+  return OUT_STATUSES.has(status.toUpperCase());
+}
 
 function emptyTotals(categories: StatCategory[]): Totals {
   const totals: Totals = {};
@@ -217,19 +238,38 @@ function projectTeam(input: ProjectionInput, team: TeamInput): TeamProjection {
     .filter((date) => date >= weekStart && date <= today && date <= weekEnd)
     .sort();
   const todayRoster = team.rosterByDate[today] ?? team.rosterByDate[pastDates[pastDates.length - 1] ?? ""] ?? [];
+  const futureDates = Object.keys(team.rosterByDate)
+    .filter((date) => date > today && date >= weekStart && date <= weekEnd)
+    .sort();
 
-  // Which players started on which past day — a player benched on Tuesday must not be
-  // credited with Tuesday's box score.
-  const activeOnDate = new Map<string, Set<string>>();
-  for (const date of pastDates) {
-    const roster = team.rosterByDate[date] ?? [];
-    activeOnDate.set(
-      date,
-      new Set(roster.filter((player) => isActivePosition(player.selectedPosition)).map((p) => p.playerKey)),
-    );
-  }
+  /** The lineup for a day still to come, or today's when Yahoo sent none for it. */
+  const rosterOn = (date: string): YahooPlayer[] => {
+    const roster = team.rosterByDate[date];
+    return date > today && !roster?.length ? todayRoster : roster ?? [];
+  };
 
-  // Forward-looking slots: either the manager's current lineup or the optimizer's.
+  // Each day's slot for everyone on the roster that day. A player benched on Tuesday is
+  // not credited with Tuesday's line, and one benched in Sunday's lineup is not projected
+  // for Sunday.
+  const lineups = new Map<string, Map<string, string>>();
+  const lineupOn = (date: string): Map<string, string> => {
+    let lineup = lineups.get(date);
+    if (!lineup) {
+      lineup = new Map(rosterOn(date).map((player) => [player.playerKey, player.selectedPosition]));
+      lineups.set(date, lineup);
+    }
+    return lineup;
+  };
+  const isActiveOn = (date: string, playerKey: string): boolean => {
+    const position = lineupOn(date).get(playerKey);
+    return position !== undefined && isActivePosition(position);
+  };
+
+  // Days whose roster Yahoo sent, which are the only ones that can say when a player
+  // joined or left. A day it failed to send would otherwise read as everyone gone.
+  const knownDates = datesInRange(weekStart, weekEnd).filter((date) => rosterOn(date).length > 0);
+
+  // Today's active slots, or with `optimize`, the optimizer's for the rest of the week.
   let futureActive: Set<string>;
   if (team.optimize) {
     const withGames = new Set(
@@ -257,8 +297,10 @@ function projectTeam(input: ProjectionInput, team: TeamInput): TeamProjection {
   const currentLines: Totals[] = [];
   const remainingLines: Totals[] = [];
 
+  // Everyone on the roster at some point this week, including a player added for a day
+  // still to come.
   const rosterUnion: YahooPlayer[] = [];
-  for (const date of [...pastDates, today]) {
+  for (const date of [...pastDates, today, ...futureDates]) {
     for (const player of team.rosterByDate[date] ?? []) {
       if (seen.has(player.playerKey)) continue;
       seen.add(player.playerKey);
@@ -291,7 +333,7 @@ function projectTeam(input: ProjectionInput, team: TeamInput): TeamProjection {
     const bankedDays: Totals[] = [];
     const playedDates = new Set<string>();
     for (const date of pastDates) {
-      if (!activeOnDate.get(date)?.has(player.playerKey)) continue;
+      if (!isActiveOn(date, player.playerKey)) continue;
       const yahooLine = yahooLines.get(date)?.get(player.playerKey);
       const lines = yahooLine
         ? [yahooLine]
@@ -303,14 +345,14 @@ function projectTeam(input: ProjectionInput, team: TeamInput): TeamProjection {
       ? emptyTotals(categories)
       : sumContributions(bankedDays, categories);
 
-    // Remaining: scheduled games left, times this player's window averages. A game
-    // Yahoo already has a line for today has tipped off, even if he sat on the bench.
+    // Remaining: scheduled games left while he is on the roster. The projection counts
+    // those on days he is in an active slot, times his window averages. A game Yahoo
+    // already has a line for today has tipped off, even if he sat on the bench.
     const allPlayed = new Set(
       (entry?.games ?? []).filter((row) => row[0] >= weekStart && row[0] <= today).map((row) => row[0]),
     );
     if (yahooLines.get(today)?.has(player.playerKey)) allPlayed.add(today);
     const games = weekGames(feed.schedule, player.teamAbbr, weekStart, weekEnd, today, allPlayed);
-    const isFutureActive = futureActive.has(player.playerKey) && !excluded.has(player.playerKey);
     const averages = playerAverages({
       nbaId,
       mode,
@@ -320,9 +362,23 @@ function projectTeam(input: ProjectionInput, team: TeamInput): TeamProjection {
       projections: feed.projections.players,
     });
 
-    const remainingGames = isFutureActive ? games.remaining : 0;
-    const projected = lineToStats(averages.stats, categories, remainingGames);
-    if (remainingGames === 0) applyPercentages(projected, categories);
+    const remainingDates = games.remainingDates.filter((date) => lineupOn(date).has(player.playerKey));
+    let projectedGames: number;
+    let benchedDates: string[] = [];
+    if (excluded.has(player.playerKey)) {
+      projectedGames = 0;
+    } else if (team.optimize) {
+      projectedGames = futureActive.has(player.playerKey) ? remainingDates.length : 0;
+    } else {
+      projectedGames = remainingDates.filter((date) => isActiveOn(date, player.playerKey)).length;
+      benchedDates = remainingDates.filter((date) => lineupOn(date).get(player.playerKey) === "BN");
+    }
+    const projected = lineToStats(averages.stats, categories, projectedGames);
+    if (projectedGames === 0) applyPercentages(projected, categories);
+
+    const onRoster = knownDates.filter((date) => lineupOn(date).has(player.playerKey));
+    const first = onRoster[0];
+    const last = onRoster[onRoster.length - 1];
 
     contributions.push({
       playerKey: player.playerKey,
@@ -331,8 +387,13 @@ function projectTeam(input: ProjectionInput, team: TeamInput): TeamProjection {
       nbaId,
       teamAbbr: player.teamAbbr,
       selectedPosition: player.selectedPosition,
+      status: player.status,
       totalGames: games.total,
-      remainingGames,
+      remainingGames: remainingDates.length,
+      projectedGames,
+      benchedDates,
+      addedOn: first && first > knownDates[0]! ? first : undefined,
+      droppedOn: last && last < knownDates[knownDates.length - 1]! ? knownDates.find((date) => date > last) : undefined,
       playedGames: playedDates.size,
       current,
       projected,

@@ -85,28 +85,29 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-/** Rosters for each day of the week that has already happened, plus today, each with
- * every player's line for that day.
+/** Rosters for every day of the week, plus today, each with every player's line for
+ * that day.
  *
- * Past days matter because a player benched on Tuesday must not be credited with
- * Tuesday's line; future days all use today's roster, which is what Yahoo returns for a
- * future date anyway. */
+ * Each day's lineup decides who counts that day: a player benched on Tuesday is not
+ * credited with Tuesday's line, and one benched in Sunday's lineup is not projected for
+ * Sunday. For a day still to come Yahoo returns the lineup the manager set for it, or the
+ * current one carried forward. A day that fails to load is left out, so the projection
+ * falls back to today's lineup instead of an empty one. */
 export async function loadRosterByDate(
   teamKey: string,
   weekStart: string,
   weekEnd: string,
   today: string,
 ): Promise<Record<string, YahooPlayer[]>> {
-  const lastPast = today < weekEnd ? today : weekEnd;
-  const pastDates = weekStart <= lastPast ? datesInRange(weekStart, lastPast) : [];
-  const dates = pastDates.includes(today) ? pastDates : [...pastDates, today];
+  const week = weekStart <= weekEnd ? datesInRange(weekStart, weekEnd) : [];
+  const dates = week.includes(today) ? week : [...week, today];
 
   const rosterByDate: Record<string, YahooPlayer[]> = {};
   await mapWithConcurrency(dates, 4, async (date) => {
     try {
       rosterByDate[date] = await fetchRoster(teamKey, date);
     } catch {
-      rosterByDate[date] = [];
+      if (date <= today) rosterByDate[date] = [];
     }
   });
 

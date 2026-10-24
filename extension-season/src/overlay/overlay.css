@@ -125,6 +125,26 @@
   color: #9aa1ab;
 }
 
+/* Remaining games on days the player is benched: a badge on the chip's corner, out of
+   flow so the chips stay in line. */
+.shams-games-benched { position: relative; cursor: help; }
+.shams-warn {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* Matchup player names: a roster tag drops to a second line rather than widen the column. */
+.shams-table td.shams-player { white-space: normal; }
+.shams-player > span { white-space: nowrap; }
+.shams-player > .shams-roster-tag { display: inline-block; margin-left: 4px; }
+
+/* Dropped earlier in the week: banked stats still count, nothing left to come. */
+.shams-row-gone td { opacity: 0.55; }
+
 .shams-empty {
   padding: 12px;
   font-size: 12px;

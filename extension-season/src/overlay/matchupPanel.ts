@@ -4,7 +4,7 @@
 import type { Feed } from "../feed/types";
 import type { StatCategory } from "../yahoo/types";
 import type { AddCandidate } from "../engine/adds";
-import type { ProjectionResult, TeamProjection, Totals } from "../engine/project";
+import { isOutStatus, type PlayerContribution, type ProjectionResult, type TeamProjection, type Totals } from "../engine/project";
 import { MODE_LABELS, PROJECTION_MODES, type ProjectionMode } from "../engine/statWindows";
 import { SHAMS_ATTR, clearInjected, el, formatStat, gamesClass, statusBadge } from "./dom";
 
@@ -85,6 +85,78 @@ function totalsRow(
   return row;
 }
 
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function weekday(date: string): string {
+  return WEEKDAYS[new Date(`${date}T12:00:00Z`).getUTCDay()] ?? date;
+}
+
+/** "Sat 10/24" */
+function dayLabel(date: string): string {
+  return `${weekday(date)} ${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`;
+}
+
+/** Mid-week roster moves, since only games while he is on this roster count. */
+function rosterTags(player: PlayerContribution): HTMLElement[] {
+  const tags: HTMLElement[] = [];
+  if (player.addedOn) {
+    tags.push(
+      el("span", {
+        class: "shams-source shams-roster-tag",
+        text: `· added ${weekday(player.addedOn)}`,
+        title: `On this roster from ${dayLabel(player.addedOn)}; only his games from then on count for this team.`,
+      }),
+    );
+  }
+  if (player.droppedOn) {
+    tags.push(
+      el("span", {
+        class: "shams-source shams-roster-tag",
+        text: `· dropped ${weekday(player.droppedOn)}`,
+        title: `Off this roster from ${dayLabel(player.droppedOn)}; his games from then on don't count for this team.`,
+      }),
+    );
+  }
+  return tags;
+}
+
+/** Remaining / total games, with a warning when some remaining games fall on days he is
+ *  benched, since the projection leaves those out. */
+function gamesCell(player: PlayerContribution): HTMLTableCellElement {
+  const text = `${player.remainingGames}/${player.totalGames}`;
+  const benched = isOutStatus(player.status) ? [] : player.benchedDates;
+  if (!benched.length) return el("td", {}, [el("span", { class: gamesClass(player.remainingGames), text })]);
+
+  const left = player.remainingGames;
+  const detail =
+    benched.length === left
+      ? left === 1
+        ? "his only remaining game isn't projected"
+        : `none of his ${left} remaining games are projected`
+      : `${benched.length} of his ${left} remaining games ${benched.length === 1 ? "isn't" : "aren't"} projected`;
+  return el("td", {}, [
+    el(
+      "span",
+      {
+        class: `${gamesClass(player.remainingGames)} shams-games-benched`,
+        text,
+        title: `Benched ${benched.map(dayLabel).join(", ")}, so ${detail}.`,
+      },
+      [el("span", { class: "shams-warn", text: "⚠" })],
+    ),
+  ]);
+}
+
+/** FG% or FT% for his whole week, banked and projected shots pooled, so a player with no
+ *  games left still shows what he shot. */
+function weekPercentage(player: PlayerContribution, displayName: string, fallback: number): number {
+  const keys = displayName === "FG%" ? ["_FGM", "_FGA"] : displayName === "FT%" ? ["_FTM", "_FTA"] : null;
+  if (!keys) return fallback;
+  const [made, attempted] = keys as [string, string];
+  const attempts = (player.current[attempted] ?? 0) + (player.projected[attempted] ?? 0);
+  return attempts > 0 ? ((player.current[made] ?? 0) + (player.projected[made] ?? 0)) / attempts : 0;
+}
+
 function playerList(team: TeamProjection, categories: StatCategory[], heading: string): HTMLElement {
   const table = el("table", { class: "shams-table" });
   const head = el("tr", {}, [
@@ -97,11 +169,17 @@ function playerList(team: TeamProjection, categories: StatCategory[], heading: s
   const body = el("tbody");
   const sorted = team.players
     .slice()
-    .sort((a, b) => b.remainingGames - a.remainingGames || a.name.localeCompare(b.name));
+    .sort(
+      (a, b) =>
+        b.remainingGames - a.remainingGames ||
+        Number(Boolean(a.droppedOn)) - Number(Boolean(b.droppedOn)) ||
+        a.name.localeCompare(b.name),
+    );
 
   for (const player of sorted) {
-    const row = el("tr", {}, [
-      el("td", { class: "shams-name" }, [
+    const gone = Boolean(player.droppedOn) && player.remainingGames === 0;
+    const row = el("tr", { class: gone ? "shams-row-gone" : "" }, [
+      el("td", { class: "shams-name shams-player" }, [
         el("span", { text: player.name }),
         player.source === "projection" || player.source === "previous"
           ? el("span", {
@@ -113,20 +191,16 @@ function playerList(team: TeamProjection, categories: StatCategory[], heading: s
                   : "No current-season sample yet — using last season's averages",
             })
           : null,
+        ...rosterTags(player),
       ]),
-      el("td", {}, [
-        el("span", {
-          class: gamesClass(player.remainingGames),
-          text: `${player.remainingGames}/${player.totalGames}`,
-        }),
-      ]),
+      gamesCell(player),
       ...categories
         .filter((c) => !c.isDisplayOnly)
         .map((c) => {
           const isPercentage = c.displayName.includes("%");
           const banked = player.current[c.statId] ?? 0;
           const projected = player.projected[c.statId] ?? 0;
-          const value = isPercentage ? projected : banked + projected;
+          const value = isPercentage ? weekPercentage(player, c.displayName, projected) : banked + projected;
           return el("td", { text: formatStat(value, isPercentage) });
         }),
     ]);

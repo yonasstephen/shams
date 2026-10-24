@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { projectMatchup, type TeamInput, type Totals } from "../src/engine/project";
+import { isOutStatus, projectMatchup, type TeamInput, type Totals } from "../src/engine/project";
 import { parseStats } from "../src/yahoo/client";
 import { todayIso } from "../src/content/context";
 import type { Feed, GameRow, PlayersFile, ScheduleFile } from "../src/feed/types";
@@ -45,10 +45,12 @@ const projection = {
 function feedWith(games: Record<string, GameRow[]> = {}): Feed {
   return {
     schedule,
-    index: { count: 2, yahoo_to_nba: { "1001": "5001", "1002": "5002" }, nba_names: {} },
+    index: { count: 3, yahoo_to_nba: { "1001": "5001", "1002": "5002", "1003": "5003" }, nba_names: {} },
     players: players(games),
     playersPrev: players(),
-    projections: { season: "2026-27", count: 2, players: { "5001": projection, "5002": projection } },
+    projections: {
+      season: "2026-27", count: 3, players: { "5001": projection, "5002": projection, "5003": projection },
+    },
   } as unknown as Feed;
 }
 
@@ -141,6 +143,94 @@ describe("banked stats", () => {
     expect(starter.current["10"]).toBe(4);
     expect(starter.current["12"]).toBe(18);
     expect(starter.current["5"]).toBeCloseTo(0.5);
+  });
+});
+
+describe("remaining games", () => {
+  const SUNDAY = "2026-10-25";
+  const find = (mine: ReturnType<typeof project>, id: string) => mine.players.find((p) => p.playerId === id)!;
+
+  it("project only the days a player is in an active slot", () => {
+    // Sunday's lineup swaps them: the starter sits and the backup starts.
+    const mine = project({
+      rosterByDate: { ...week(undefined), [SUNDAY]: [player("1001", "BN"), player("1002", "PG")] },
+    });
+    const starter = find(mine, "1001");
+    const backup = find(mine, "1002");
+
+    expect(starter.projectedGames).toBe(1); // tonight only
+    expect(backup.projectedGames).toBe(1); // Sunday only
+    expect(mine.remaining["10"]).toBe(2 * 3);
+  });
+
+  it("still show every game left, and which of them are on the bench", () => {
+    const mine = project({
+      rosterByDate: { ...week(undefined), [SUNDAY]: [player("1001", "BN"), player("1002", "PG")] },
+    });
+    const starter = find(mine, "1001");
+    const backup = find(mine, "1002");
+
+    expect([starter.remainingGames, starter.totalGames]).toEqual([2, 4]);
+    expect(starter.benchedDates).toEqual([SUNDAY]);
+    expect([backup.remainingGames, backup.totalGames]).toEqual([2, 4]);
+    expect(backup.benchedDates).toEqual([TODAY]);
+  });
+
+  it("use today's lineup for a day Yahoo sent none for", () => {
+    const mine = project({ rosterByDate: { ...week(undefined), [SUNDAY]: [] } });
+
+    expect(find(mine, "1001").projectedGames).toBe(2);
+    expect(find(mine, "1002").projectedGames).toBe(0);
+    expect(find(mine, "1002").benchedDates).toEqual([TODAY, SUNDAY]);
+  });
+
+  it("include a player added for a day still to come", () => {
+    const mine = project({
+      rosterByDate: {
+        ...week(undefined),
+        [SUNDAY]: [player("1001", "PG"), player("1002", "BN"), player("1003", "Util")],
+      },
+    });
+    const added = find(mine, "1003");
+
+    expect([added.remainingGames, added.projectedGames]).toEqual([1, 1]);
+    expect(added.addedOn).toBe(SUNDAY);
+    expect(added.playedGames).toBe(0);
+    expect(mine.remaining["10"]).toBe(3 * 3); // the starter twice, the new player once
+  });
+
+  it("keep a dropped player's banked games but nothing after he left", () => {
+    // 1003 started Tuesday and was dropped before Thursday.
+    const rosterByDate = week(undefined);
+    rosterByDate["2026-10-20"]!.push(player("1003", "Util", { _FGM: 2, _FGA: 5, "10": 2, "12": 6 }));
+    rosterByDate["2026-10-21"]!.push(player("1003", "Util"));
+    const mine = project({ rosterByDate });
+    const dropped = find(mine, "1003");
+
+    expect(dropped.current["10"]).toBe(2);
+    expect(dropped.playedGames).toBe(1);
+    expect([dropped.remainingGames, dropped.projectedGames]).toEqual([0, 0]);
+    expect(dropped.droppedOn).toBe("2026-10-22");
+    expect(dropped.addedOn).toBeUndefined();
+  });
+
+  it("count tonight for a player dropped from tomorrow on", () => {
+    const mine = project({ rosterByDate: { ...week(undefined), [SUNDAY]: [player("1001", "PG")] } });
+    const backup = find(mine, "1002");
+
+    expect(backup.remainingGames).toBe(1); // tonight, on the bench
+    expect(backup.benchedDates).toEqual([TODAY]);
+    expect(backup.droppedOn).toBe(SUNDAY);
+  });
+});
+
+describe("isOutStatus", () => {
+  it("treats injured and suspended players as out, but not game-time decisions", () => {
+    expect(isOutStatus("O")).toBe(true);
+    expect(isOutStatus("INJ")).toBe(true);
+    expect(isOutStatus("SUSP")).toBe(true);
+    expect(isOutStatus("GTD")).toBe(false);
+    expect(isOutStatus("")).toBe(false);
   });
 });
 
